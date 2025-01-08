@@ -13,20 +13,15 @@ class Board:
         self.board = [[0] * width for _ in range(height)]
         self.cell_size = cell_size
         self.left = (screenw - x * cell_size) / 2
-        print((screenh - y * cell_size) / 2)
-        print((screenw - y * cell_size) / 2)
         self.top = (screenh - y * cell_size) / 2
         if self.left < 0:
             self.cell_size = floor(screenw / x)
             self.left = (screenw - x * self.cell_size) / 2
-            print(self.cell_size)
         if self.top < 0:
-            if self.cell_size > floor(screenw / x):
-                self.cell_size = floor(screenw / x)
+            if self.cell_size > floor(screenh / y):
+                self.cell_size = floor(screenh / y)
             self.top = (screenh - y * self.cell_size) / 2
-            print(self.cell_size)
-        print(self.top)
-        print(self.left)
+        self.left = (screenw - x * self.cell_size) / 2
 
     def render(self):
         for i in range(int(self.height)):
@@ -40,7 +35,7 @@ class Board:
         pos_x = (x - self.left) // self.cell_size
         pos_y = (y - self.top) // self.cell_size
         if pos_y in range(self.height) and pos_x in range(self.width):
-            return (pos_x, pos_y)
+            return (int(pos_x), int(pos_y))
         else:
             return None
 
@@ -54,8 +49,11 @@ class Board:
             self.on_click(cell)
 
     def save(self):
-        with open(f'maps/{ctime()}', "w+") as f:
-            f.write(self.board)
+        with open(f'maps/{ctime().replace(" ", "").replace(":", "")}.wmap', "w+") as f:
+            for row in self.board:
+                f.write(str(row) + '\n')
+            print("Карта сохранена")
+
 
 if __name__ == "__main__":
     pg.init()
@@ -71,6 +69,7 @@ if __name__ == "__main__":
     screen.fill((0, 0, 0))
     board = Board(x, y, screen)
     board.render()
+    print("Для того что-бы сохранить нажмите enter")
     while running:
         for event in pg.event.get():
             if event.type == pg.QUIT:
