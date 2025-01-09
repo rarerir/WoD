@@ -4,9 +4,9 @@ import pickle
 
 
 class Board:
-    # создание поля
-    def __init__(self, canvas, cell_size=30):
-        self.load()
+    # Создание поля
+    def __init__(self, canvas, mapn, cell_size=30):
+        self.load(mapn)
         self.canvas = canvas
         self.colors = ["black", "brown", "blue"]
         self.cell_size = cell_size
@@ -28,7 +28,7 @@ class Board:
                 pg.draw.rect(self.canvas, self.colors[self.board[i][j]], eq)
 
     def load(self, mapnm):
-        with(open(f'maps/{mapnm}', "rb")) as f:
+        with(open(f'maps/{mapnm}.wmap', "rb")) as f:
             mapstr = pickle.load(f)
         self.x, self.y = mapstr.pop(-1)
         self.board = mapstr
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     size = (screenw, screenh)
     screen = pg.display.set_mode(size)
     screen.fill((0, 0, 0))
-    board = Board(screen)
+    board = Board(screen, input("Введите название карты\n"))
 
     while running:
         for event in pg.event.get():
