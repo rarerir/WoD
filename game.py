@@ -62,23 +62,20 @@ class Tank(pg.sprite.Sprite):
         print(self.spawn)
 
     def update(self, keys, isd):
-        if isd:
-            if keys[pg.K_UP]:
-                self.move(self.speed)
-            if keys[pg.K_DOWN]:
-                self.move(-self.speed)
-            if keys[pg.K_LEFT]:
-                self.angle += 5
-            if keys[pg.K_RIGHT]:
-                self.angle -= 5
-            self.image = pg.transform.rotate(self.original_image, self.angle)
-            self.rect = self.image.get_rect(center=self.rect.center)
 
-    def move(self, amount):
-        dx = -amount * math.sin(math.radians(self.angle))
-        dy = -amount * math.cos(math.radians(self.angle))
-        self.rect.x += dx
-        self.rect.y += dy
+
+    def move(self):
+        if keys[pg.K_UP]:
+            self.move(self.speed)
+        if keys[pg.K_DOWN]:
+            self.move(-self.speed)
+        if keys[pg.K_LEFT]:
+            self.angle += 5
+        if keys[pg.K_RIGHT]:
+            self.angle -= 5
+        self.image = pg.transform.rotate(self.original_image, self.angle)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
 
 
 if __name__ == "__main__":
@@ -109,5 +106,6 @@ if __name__ == "__main__":
         screen.fill((0, 0, 0))
         board.render()
         all_sprites.draw(screen)
+        board.tank1.update
         pg.display.flip()
         clock.tick(v)
