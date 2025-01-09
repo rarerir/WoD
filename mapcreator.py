@@ -1,30 +1,15 @@
 import pygame as pg
 from math import floor
-import os
-import sys
 from time import ctime
 
-def load_image(name, colorkey=None):
-    fullname = os.path.join('data', name)
-    # если файл не существует, то выходим
-    if not os.path.isfile(fullname):
-        print(f"Файл с изображением '{fullname}' не найден")
-        sys.exit()
-    image = pg.image.load(fullname)
-    return image
 
 class Board:
     # создание поля
     def __init__(self, width, height, canvas, cell_size=30):
-
-        self.images = [
-            load_image("земля.jpg"),
-            load_image("вода.jpg"),
-            load_image("кирпичи.png")]
-        self.scaled_images = [pg.transform.scale(img, (cell_size, cell_size)) for img in self.images]
         self.width = width
         self.height = height
         self.canvas = canvas
+        self.colors = ["black", "brown", "blue"]
         self.board = [[0] * width for _ in range(height)]
         self.cell_size = cell_size
         self.left = (screenw - x * cell_size) / 2
@@ -39,16 +24,11 @@ class Board:
         self.left = (screenw - x * self.cell_size) / 2
 
     def render(self):
-        for i in range(self.height):
-            for j in range(self.width):
-                rect = (
-                    j * self.cell_size + self.left,
-                    i * self.cell_size + self.top,
-                    self.cell_size,
-                    self.cell_size
-                )
-                self.canvas.blit(self.scaled_images[self.board[i][j]], rect)
-                pg.draw.rect(self.canvas, 'white', rect, 1)
+        for i in range(int(self.height)):
+            for j in range(int(self.width)):
+                eq = (j * self.cell_size + self.left, i * self.cell_size + self.top, self.cell_size, self.cell_size)
+                pg.draw.rect(self.canvas, self.colors[self.board[i][j]], eq)
+                pg.draw.rect(self.canvas, 'white', eq, 1)
 
     def get_cell(self, coords):
         x, y = coords
