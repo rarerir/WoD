@@ -1,5 +1,6 @@
 import pygame as pg
 from math import floor
+from time import ctime
 import pickle
 
 
@@ -76,7 +77,6 @@ if __name__ == "__main__":
                 running = False
             if event.type == pg.KEYDOWN and event.dict.get("key") == 13:
                 board.save()
-                running = False
             if event.type == pg.MOUSEBUTTONDOWN:
                 board.get_click(event.pos)
                 screen.fill((0, 0, 0))
