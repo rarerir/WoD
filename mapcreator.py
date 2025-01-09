@@ -1,6 +1,5 @@
 import pygame as pg
 from math import floor
-from time import ctime
 import pickle
 
 
@@ -50,7 +49,7 @@ class Board:
             self.on_click(cell)
 
     def save(self):
-        with open(f'maps/{ctime().replace(" ", "").replace(":", "")}.wmap', "wb") as f:
+        with open(f'maps/{input("Введите название карты").replace(" ", "").replace(":", "")}.wmap', "wb") as f:
             self.board.append([x, y])
             pickle.dump(self.board, f)
             print("Карта сохранена")
