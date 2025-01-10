@@ -51,7 +51,6 @@ class Tank(pg.sprite.Sprite):
         self.original_image = pg.image.load('sprites/крутой так.png')
         self.image = self.original_image
         self.rect = self.image.get_rect()
-        self.rect.center = (spawn[0] * 30, spawn[1] * 30)  # Set the tank's position based on spawn
 
         # Игровые
         self.angle = 0
