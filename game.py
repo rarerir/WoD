@@ -16,7 +16,7 @@ class Board:
         self.cell_size = cell_size
         self.left = (screenw - self.x * cell_size) / 2
         self.top = (screenh - self.y * cell_size) / 2
-        self.drag = 0.02
+        self.drag = 0.7
         if self.left < 0:
             self.cell_size = floor(screenw / self.x)
             self.left = (screenw - self.x * self.cell_size) / 2
@@ -70,32 +70,26 @@ class Tank(pg.sprite.Sprite):
         self.dy = 0
 
     def update(self, keys, isd):
-        if keys[pg.K_UP]:
-            if isd:
+        if isd:
+            if keys[pg.K_UP]:
                 self.dx += -self.speed * math.sin(math.radians(self.angle))
                 self.dy += -self.speed * math.cos(math.radians(self.angle))
-            else:
-                self.dx = 0
-                self.dy = 0
-        if keys[pg.K_DOWN] and isd:
-            if isd:
+            if keys[pg.K_DOWN]:
                 self.dx += self.speed * math.sin(math.radians(self.angle))
                 self.dy += self.speed * math.cos(math.radians(self.angle))
-            else:
-                self.dx = 0
-                self.dy = 0
-        if keys[pg.K_LEFT]:
-            if isd:
-                self.da += self.angspeed
-            else:
-                self.da = 0
-        if keys[pg.K_RIGHT]:
-            if isd:
-                self.da -= self.angspeed
-            else:
-                self.da = 0
+            if keys[pg.K_LEFT]:
+                self.da += self.drag
+            if keys[pg.K_RIGHT]:
+                self.da -= self.drag
+        if not (keys[pg.K_UP] or keys[pg.K_DOWN]):
+            self.dx *= 0.95
+            self.dy *= 0.95
+            self.da *= 0.95
+        if abs(self.dx) < 0.2:
+            self.dx = 0
+        if abs(self.dy) < 0.2:
+            self.dy = 0
         self.move()
-
 
     def move(self):
         self.image = pg.transform.rotate(self.original_image, self.angle)
@@ -103,9 +97,7 @@ class Tank(pg.sprite.Sprite):
         self.rect.x += self.dx
         self.rect.y += self.dy
         self.angle += self.da
-        self.dx *= (1 - self.drag)
-        self.dy *= (1 - self.drag)
-        self.da *= (1 - self.drag)
+
 
 
 if __name__ == "__main__":
@@ -117,7 +109,7 @@ if __name__ == "__main__":
     size = (screenw, screenh)
     screen = pg.display.set_mode(size)
     # Фпс
-    v = 50
+    v = 30
     clock = Clock()
 
     all_sprites = pg.sprite.Group()
