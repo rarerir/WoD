@@ -16,6 +16,7 @@ class Board:
         self.cell_size = cell_size
         self.left = (screenw - self.x * cell_size) / 2
         self.top = (screenh - self.y * cell_size) / 2
+        self.drag = 0.02
         if self.left < 0:
             self.cell_size = floor(screenw / self.x)
             self.left = (screenw - self.x * self.cell_size) / 2
@@ -45,11 +46,11 @@ class Board:
 
     def spawn(self):
         spawn = (random.randrange(1, self.x + 1), random.randrange(1, self.y + 1))
-        self.tank1 = Tank(spawn, 3, all_sprites)
+        self.tank1 = Tank(spawn, 1, 1, self.drag, all_sprites)
 
 
 class Tank(pg.sprite.Sprite):
-    def __init__(self, spawn, colorid, *group):
+    def __init__(self, spawn, speed, angspeed, drag, *group):
         super().__init__(*group)
         # Програмные
         self.original_image = pg.image.load('sprites/крутой так.png')
@@ -57,32 +58,54 @@ class Tank(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect = pg.Rect(self.rect.y, self.rect.x, self.rect.h, self.rect.w)
         # Игровые
-        self.colorid = colorid
         self.spawn = spawn
         self.angle = 0
-        self.speed = 4
+        self.angspeed = angspeed
+        self.speed = speed
+        self.drag = drag
         print(self.spawn)
         # Управление
-        self.forward = False
-        self.backward = False
-        self.left = False
-        self.right = False
+        self.da = 0
+        self.dx = 0
+        self.dy = 0
 
     def update(self, keys, isd):
-        keys[pg.K_RIGHT]
+        if keys[pg.K_UP]:
+            if isd:
+                self.dx += -self.speed * math.sin(math.radians(self.angle))
+                self.dy += -self.speed * math.cos(math.radians(self.angle))
+            else:
+                self.dx = 0
+                self.dy = 0
+        if keys[pg.K_DOWN] and isd:
+            if isd:
+                self.dx += self.speed * math.sin(math.radians(self.angle))
+                self.dy += self.speed * math.cos(math.radians(self.angle))
+            else:
+                self.dx = 0
+                self.dy = 0
+        if keys[pg.K_LEFT]:
+            if isd:
+                self.da += self.angspeed
+            else:
+                self.da = 0
+        if keys[pg.K_RIGHT]:
+            if isd:
+                self.da -= self.angspeed
+            else:
+                self.da = 0
+        self.move()
+
 
     def move(self):
-        if self.forward:
-            self.
-        if self.backward:
-            self.
-        if self.left:
-            self.angle += 5
-        if self.right:
-            self.angle -= 5
         self.image = pg.transform.rotate(self.original_image, self.angle)
         self.rect = self.image.get_rect(center=self.rect.center)
-
+        self.rect.x += self.dx
+        self.rect.y += self.dy
+        self.angle += self.da
+        self.dx *= (1 - self.drag)
+        self.dy *= (1 - self.drag)
+        self.da *= (1 - self.drag)
 
 
 if __name__ == "__main__":
@@ -94,7 +117,7 @@ if __name__ == "__main__":
     size = (screenw, screenh)
     screen = pg.display.set_mode(size)
     # Фпс
-    v = 90
+    v = 50
     clock = Clock()
 
     all_sprites = pg.sprite.Group()
@@ -103,13 +126,15 @@ if __name__ == "__main__":
     running = True
     while running:
         for event in pg.event.get():
-            keys = pg.key.get_pressed()
             if event.type == pg.QUIT:
                 running = False
-            elif event.type == pg.KEYDOWN:
-                all_sprites.update(keys, True)
-            elif event.type == pg.KEYUP:
-                all_sprites.update(keys, False)
+        keys = pg.key.get_pressed()
+        if keys[pg.K_UP] in keys or keys[pg.K_DOWN] in keys or keys[pg.K_LEFT] in keys or keys[
+            pg.K_RIGHT] in keys:
+            all_sprites.update(keys, True)
+        elif keys[pg.K_UP] in keys or keys[pg.K_DOWN] in keys or keys[pg.K_LEFT] in keys or keys[
+            pg.K_RIGHT] in keys:
+            all_sprites.update(keys, True)
         screen.fill((0, 0, 0))
         board.render()
         all_sprites.draw(screen)
