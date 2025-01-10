@@ -6,7 +6,6 @@ import pickle
 import random
 import math
 
-
 class Board:
     # Создание поля
     def __init__(self, canvas, mapn, cell_size=30):
@@ -23,7 +22,6 @@ class Board:
             if self.cell_size > floor(screenh / self.y):
                 self.cell_size = floor(screenh / self.y)
             self.top = (screenh - self.y * self.cell_size) / 2
-        self.left = (screenw - self.x * self.cell_size) / 2
         self.spawn()
 
     def render(self):
@@ -34,52 +32,64 @@ class Board:
 
     def load(self, mapnm):
         try:
-            with(open(f'maps/{mapnm}.wmap', "rb")) as f:
+            with open(f'maps/{mapnm}.wmap', "rb") as f:
                 mapstr = pickle.load(f)
         except FileNotFoundError:
             print(f"Карта {mapnm} не найдена")
             sys.exit()
         self.x, self.y = mapstr.pop(-1)
         self.board = mapstr
-        print(mapstr)
 
     def spawn(self):
         spawn = (random.randrange(1, self.x + 1), random.randrange(1, self.y + 1))
-        self.tank1 = Tank(spawn, 3, all_sprites)
-
+        self.tank1 = Tank(spawn, 5, 2, all_sprites)
 
 class Tank(pg.sprite.Sprite):
-    def __init__(self, spawn, colorid, *group):
+    def __init__(self, spawn, speed, angspeed, *group):
         super().__init__(*group)
+        # Програмные
         self.original_image = pg.image.load('sprites/крутой так.png')
         self.image = self.original_image
         self.rect = self.image.get_rect()
-        self.rect = pg.Rect(self.rect.y, self.rect.x, self.rect.h, self.rect.w)
-        self.colorid = colorid
-        self.spawn = spawn
+        self.rect.center = (spawn[0] * 30, spawn[1] * 30)  # Set the tank's position based on spawn
+
+        # Игровые
         self.angle = 0
-        self.speed = 4
-        print(self.spawn)
+        self.angspeed = angspeed
+        self.speed = speed
 
-    def update(self, keys, isd):
-        if isd:
-            if keys[pg.K_UP]:
-                self.move(self.speed)
-            if keys[pg.K_DOWN]:
-                self.move(-self.speed)
-            if keys[pg.K_LEFT]:
-                self.angle += 5
-            if keys[pg.K_RIGHT]:
-                self.angle -= 5
-            self.image = pg.transform.rotate(self.original_image, self.angle)
-            self.rect = self.image.get_rect(center=self.rect.center)
+        # Управление
+        self.da = 0
+        self.dx = 0
+        self.dy = 0
 
-    def move(self, amount):
-        dx = -amount * math.sin(math.radians(self.angle))
-        dy = -amount * math.cos(math.radians(self.angle))
-        self.rect.x += dx
-        self.rect.y += dy
+    def update(self, keys):
+        if keys[pg.K_UP]:
+            self.dx = -self.speed * math.sin(math.radians(self.angle))
+            self.dy = -self.speed * math.cos(math.radians(self.angle))
+        elif keys[pg.K_DOWN]:
+            self.dx = self.speed * math.sin(math.radians(self.angle))
+            self.dy = self.speed * math.cos(math.radians(self.angle))
+        else:
+            self.dx = 0
+            self.dy = 0
 
+        if keys[pg.K_LEFT]:
+            self.da = self.angspeed
+        elif keys[pg.K_RIGHT]:
+            self.da = -self.angspeed
+        else:
+            self.da = 0
+
+        self.move()
+
+    def move(self):
+        self.image = pg.transform.rotate(self.original_image, self.angle)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+        self.rect.x += self.dx
+        self.rect.y += self.dy
+        self.angle += self.da
 
 if __name__ == "__main__":
     pg.init()
@@ -99,15 +109,15 @@ if __name__ == "__main__":
     running = True
     while running:
         for event in pg.event.get():
-            keys = pg.key.get_pressed()
             if event.type == pg.QUIT:
                 running = False
-            elif event.type == pg.KEYDOWN:
-                board.tank1.update(keys, True)
-            elif event.type == pg.KEYUP:
-                board.tank1.update(keys, False)
+        keys = pg.key.get_pressed()
+        all_sprites.update(keys)
+
         screen.fill((0, 0, 0))
         board.render()
         all_sprites.draw(screen)
         pg.display.flip()
+
         clock.tick(v)
+    pg.quit()
