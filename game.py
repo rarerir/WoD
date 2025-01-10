@@ -51,27 +51,34 @@ class Board:
 class Tank(pg.sprite.Sprite):
     def __init__(self, spawn, colorid, *group):
         super().__init__(*group)
+        # Програмные
         self.original_image = pg.image.load('sprites/крутой так.png')
         self.image = self.original_image
         self.rect = self.image.get_rect()
         self.rect = pg.Rect(self.rect.y, self.rect.x, self.rect.h, self.rect.w)
+        # Игровые
         self.colorid = colorid
         self.spawn = spawn
         self.angle = 0
         self.speed = 4
         print(self.spawn)
+        # Управление
+        self.forward = False
+        self.backward = False
+        self.left = False
+        self.right = False
 
     def update(self, keys, isd):
-
+        keys[pg.K_RIGHT]
 
     def move(self):
-        if keys[pg.K_UP]:
-            self.move(self.speed)
-        if keys[pg.K_DOWN]:
-            self.move(-self.speed)
-        if keys[pg.K_LEFT]:
+        if self.forward:
+            self.
+        if self.backward:
+            self.
+        if self.left:
             self.angle += 5
-        if keys[pg.K_RIGHT]:
+        if self.right:
             self.angle -= 5
         self.image = pg.transform.rotate(self.original_image, self.angle)
         self.rect = self.image.get_rect(center=self.rect.center)
@@ -100,12 +107,11 @@ if __name__ == "__main__":
             if event.type == pg.QUIT:
                 running = False
             elif event.type == pg.KEYDOWN:
-                board.tank1.update(keys, True)
+                all_sprites.update(keys, True)
             elif event.type == pg.KEYUP:
-                board.tank1.update(keys, False)
+                all_sprites.update(keys, False)
         screen.fill((0, 0, 0))
         board.render()
         all_sprites.draw(screen)
-        board.tank1.update
         pg.display.flip()
         clock.tick(v)
