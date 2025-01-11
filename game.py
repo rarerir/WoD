@@ -1,10 +1,12 @@
-import sys
-import pygame as pg
-from pygame import Clock
-from math import floor
+import math
 import pickle
 import random
-import math
+import sys
+from math import floor
+
+import pygame as pg
+from pygame import Vector2
+from pygame.time import Clock
 
 
 class Board:
@@ -30,7 +32,7 @@ class Board:
     def render(self):
         for i in range(int(self.y)):
             for j in range(int(self.x)):
-                eq = (j * self.cell_size + self.left, i * self.cell_size + self.top, self.cell_size, self.cell_size)
+                eq = (j * self.cell_size + self.left, i * self.cell_size + self.top, *([self.cell_size] * 2))
                 pg.draw.rect(self.canvas, self.colors[self.board[i][j]], eq)
 
     def load(self, mapnm):
@@ -97,7 +99,6 @@ class Tank(pg.sprite.Sprite):
         self.rect.x += self.dx
         self.rect.y += self.dy
         self.angle += self.da
-
 
 
 if __name__ == "__main__":
