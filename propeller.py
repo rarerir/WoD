@@ -1,5 +1,4 @@
 import sys
-import random
 import pygame
 
 
@@ -12,8 +11,8 @@ class Circle(pygame.sprite.Sprite):
         self.dy = dy
         self.radius = 30
         self.add(boolets)
-        self.x = 300
-        self.y = 300
+        self.x = 200
+        self.y = 200
         self.rect = pygame.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
 
     def update(self):
@@ -51,7 +50,7 @@ all_sprites = pygame.sprite.Group()
 horizontal_borders = pygame.sprite.Group()
 vertical_borders = pygame.sprite.Group()
 boolets = pygame.sprite.Group()
-size = width, height = 600, 600
+size = width, height = 400, 400
 Border(5, 5, width - 5, 5)
 Border(5, height - 5, width - 5, height - 5)
 Border(5, 5, 5, height - 5)
@@ -60,10 +59,10 @@ screen = pygame.display.set_mode(size)
 sprites = pygame.sprite.Group()
 clock = pygame.time.Clock()
 
-Circle(3, 5, sprites)
-Circle(-3, -5, sprites)
-Circle(5, -3, sprites)
-Circle(-5, 3, sprites)
+Circle(4, 3, sprites)
+Circle(-4, -3, sprites)
+Circle(-3, 4, sprites)
+Circle(3, -4, sprites)
 
 
 while True:
