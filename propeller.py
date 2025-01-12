@@ -3,7 +3,7 @@ import pygame
 
 
 class Circle(pygame.sprite.Sprite):
-    def __init__(self, dx, dy,*group):
+    def __init__(self, dx, dy, *group):
         super().__init__(*group)
         self.hp = 1
         self.color = (255, 0, 0)
@@ -50,7 +50,7 @@ all_sprites = pygame.sprite.Group()
 horizontal_borders = pygame.sprite.Group()
 vertical_borders = pygame.sprite.Group()
 boolets = pygame.sprite.Group()
-size = width, height = 400, 400
+size = width, height = 600, 600
 Border(5, 5, width - 5, 5)
 Border(5, height - 5, width - 5, height - 5)
 Border(5, 5, 5, height - 5)
@@ -76,4 +76,4 @@ while True:
         sprite.draw()
 
     pygame.display.update()
-    clock.tick(15)
+    clock.tick(30)
