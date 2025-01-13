@@ -4,7 +4,12 @@ from pygame import Clock
 from math import floor
 import pickle
 import random
-import math
+
+
+def calculate_move_vector(old_xy, speed, angle_in_degrees):
+    move_vec = pg.math.Vector2()
+    move_vec.from_polar((speed, angle_in_degrees))
+    return old_xy + move_vec
 
 
 class Board:
@@ -16,7 +21,7 @@ class Board:
         self.cell_size = cell_size
         self.left = (screenw - self.x * cell_size) / 2
         self.top = (screenh - self.y * cell_size) / 2
-        self.drag = 0.1
+        self.drag = 0.8
         if self.left < 0:
             self.cell_size = floor(screenw / self.x)
             self.left = (screenw - self.x * self.cell_size) / 2
@@ -42,11 +47,10 @@ class Board:
             sys.exit()
         self.x, self.y = mapstr.pop(-1)
         self.board = mapstr
-        print(mapstr)
 
     def spawn(self):
         spawn = (random.randrange(1, self.x + 1), random.randrange(1, self.y + 1))
-        self.tank1 = Tank(spawn, 1, 1, 4, self.drag, all_sprites)
+        self.tank1 = Tank((450, 450), 1, 1, 1, self.drag, all_sprites)
 
 
 class Tank(pg.sprite.Sprite):
@@ -56,15 +60,14 @@ class Tank(pg.sprite.Sprite):
         self.original_image = pg.image.load('sprites/крутой так.png')
         self.image = self.original_image
         self.rect = self.image.get_rect()
-        self.spawn = spawn
-        self.rect = pg.Rect(450, 450, self.rect.h, self.rect.w)
+        self.rect = self.image.get_rect(center=spawn)
+        self.pos = spawn
         # Игровые
         self.hp = hp
         self.angle = 0
-        self.angspeed = angspeed * dt * 0.1
-        self.speed = speed * dt * 0.1
-        self.drag = drag * dt * 0.1
-        print(self.spawn)
+        self.angspeed = angspeed * 0.1
+        self.speed = speed
+        self.drag = drag
         # Управление
         self.da = 0
         self.dx = 0
@@ -73,32 +76,43 @@ class Tank(pg.sprite.Sprite):
     def update(self, keys, isd):
         if isd:
             if keys[pg.K_UP]:
-                self.dx += -self.speed * math.sin(math.radians(self.angle))
-                self.dy += -self.speed * math.cos(math.radians(self.angle))
+                self.pos = calculate_move_vector(self.pos, -self.speed, -self.angle + 90)
+                self.rect.center = round(self.pos[0]), round(self.pos[1])
             if keys[pg.K_DOWN]:
-                self.dx += self.speed * math.sin(math.radians(self.angle))
-                self.dy += self.speed * math.cos(math.radians(self.angle))
+                self.pos = calculate_move_vector(self.pos, self.speed, -self.angle + 90)
+                self.rect.center = round(self.pos[0]), round(self.pos[1])
             if keys[pg.K_LEFT]:
-                self.da += self.angspeed
+                self.da = self.angspeed * dt
             if keys[pg.K_RIGHT]:
-                self.da -= self.angspeed
+                self.da = -self.angspeed * dt
         if not (keys[pg.K_UP] or keys[pg.K_DOWN]):
-            self.dx *= 0.95
-            self.dy *= 0.95
-            self.da *= 0.95
-        if abs(self.dx) < 0.2:
+            self.dx *= self.drag * dt
+            self.dy *= self.drag * dt
+
+        # Ограничения на скорость
+        if abs(self.dx) < 0.01:
             self.dx = 0
-        if abs(self.dy) < 0.2:
+        if abs(self.dy) < 0.01:
             self.dy = 0
+        if abs(self.dy) > 100:
+            self.dy = 100
+        if abs(self.dy) > 100:
+            self.dy = 100
+
         self.collisions()
         self.move()
 
     def collisions(self):
-        self.rect = self.rect.move(self.dx, self.dy)
         if pg.sprite.spritecollideany(self, horizontal_borders):
-            self.dy = -self.dy
+            if self.dy < 0:
+                self.dy = -self.dy + 1
+            elif self.dy >= 0:
+                self.dy = -self.dy - 1
         if pg.sprite.spritecollideany(self, vertical_borders):
-            self.dx = -self.dx
+            if self.dx < 0:
+                self.dx = -self.dx + 1
+            elif self.dx >= 0:
+                self.dx = -self.dx - 1
         if self.hp < 0:
             self.kill()
 
@@ -109,6 +123,7 @@ class Tank(pg.sprite.Sprite):
         self.rect.x += self.dx
         self.rect.y += self.dy
         self.angle += self.da
+        self.da = 0
 
 
 class Border(pg.sprite.Sprite):

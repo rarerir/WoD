@@ -3,7 +3,7 @@ import pygame
 
 
 class Circle(pygame.sprite.Sprite):
-    def __init__(self, dx, dy, *group):
+    def __init__(self, dx, dy,*group):
         super().__init__(*group)
         self.hp = 1
         self.color = (255, 0, 0)
@@ -76,4 +76,4 @@ while True:
         sprite.draw()
 
     pygame.display.update()
-    clock.tick(30)
+    clock.tick(15)
