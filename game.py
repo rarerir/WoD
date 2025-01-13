@@ -6,10 +6,10 @@ import pickle
 import random
 
 
-def calculate_move_vector(old_xy, speed, angle_in_degrees):
+def calculate_move_vector(speed, angle_in_degrees):
     move_vec = pg.math.Vector2()
     move_vec.from_polar((speed, angle_in_degrees))
-    return old_xy + move_vec
+    return move_vec
 
 
 class Board:
@@ -21,7 +21,7 @@ class Board:
         self.cell_size = cell_size
         self.left = (screenw - self.x * cell_size) / 2
         self.top = (screenh - self.y * cell_size) / 2
-        self.drag = 0.8
+        self.drag = 0.99
         if self.left < 0:
             self.cell_size = floor(screenw / self.x)
             self.left = (screenw - self.x * self.cell_size) / 2
@@ -50,7 +50,7 @@ class Board:
 
     def spawn(self):
         spawn = (random.randrange(1, self.x + 1), random.randrange(1, self.y + 1))
-        self.tank1 = Tank((450, 450), 1, 1, 1, self.drag, all_sprites)
+        self.tank1 = Tank((450, 450), 1, 3, 1, self.drag, all_sprites)
 
 
 class Tank(pg.sprite.Sprite):
@@ -66,7 +66,7 @@ class Tank(pg.sprite.Sprite):
         self.hp = hp
         self.angle = 0
         self.angspeed = angspeed * 0.1
-        self.speed = speed
+        self.speed = speed * 0.1
         self.drag = drag
         # Управление
         self.da = 0
@@ -76,29 +76,28 @@ class Tank(pg.sprite.Sprite):
     def update(self, keys, isd):
         if isd:
             if keys[pg.K_UP]:
-                self.pos = calculate_move_vector(self.pos, -self.speed, -self.angle + 90)
-                self.rect.center = round(self.pos[0]), round(self.pos[1])
+                self.dx += calculate_move_vector(-self.speed, -self.angle + 90)[0]
+                self.dy += calculate_move_vector(-self.speed, -self.angle + 90)[1]
             if keys[pg.K_DOWN]:
-                self.pos = calculate_move_vector(self.pos, self.speed, -self.angle + 90)
-                self.rect.center = round(self.pos[0]), round(self.pos[1])
+                self.dx += calculate_move_vector(self.speed, -self.angle + 90)[0]
+                self.dy += calculate_move_vector(self.speed, -self.angle + 90)[1]
             if keys[pg.K_LEFT]:
-                self.da = self.angspeed * dt
+                self.angle += self.angspeed * dt
             if keys[pg.K_RIGHT]:
-                self.da = -self.angspeed * dt
+                self.angle += -self.angspeed * dt
         if not (keys[pg.K_UP] or keys[pg.K_DOWN]):
-            self.dx *= self.drag * dt
-            self.dy *= self.drag * dt
+            self.dx *= self.drag
+            self.dy *= self.drag
 
         # Ограничения на скорость
-        if abs(self.dx) < 0.01:
+        if abs(self.dx) < 0.05:
             self.dx = 0
-        if abs(self.dy) < 0.01:
+        if abs(self.dy) < 0.05:
             self.dy = 0
         if abs(self.dy) > 100:
             self.dy = 100
         if abs(self.dy) > 100:
             self.dy = 100
-
         self.collisions()
         self.move()
 
@@ -122,8 +121,7 @@ class Tank(pg.sprite.Sprite):
         self.rect = self.image.get_rect(center=self.rect.center)
         self.rect.x += self.dx
         self.rect.y += self.dy
-        self.angle += self.da
-        self.da = 0
+        self.pos = (self.rect.x, self.rect.y)
 
 
 class Border(pg.sprite.Sprite):
