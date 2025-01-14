@@ -51,13 +51,17 @@ class Board:
 
     def spawn(self):
         spawn = (random.randrange(1, self.x + 1), random.randrange(1, self.y + 1))
-        self.tank1 = Tank((450, 450), 1, 3, 5)
+        self.tank1 = Tank((450, 450), 1, 3, 3)
 
 
 class Border(pg.sprite.Sprite):
     # строго вертикальный или строго горизонтальный отрезок
     def __init__(self, x1, y1, x2, y2):
         super().__init__(all_sprites)
+        self.x1 = x1
+        self.y1 = y1
+        self.x2 = x2
+        self.y2 = y2
         if x1 == x2:  # вертикальная стенка
             self.add(vertical_borders)
             self.image = pg.Surface([1, y2 - y1])
@@ -66,6 +70,9 @@ class Border(pg.sprite.Sprite):
             self.add(horizontal_borders)
             self.image = pg.Surface([x2 - x1, 1])
             self.rect = pg.Rect(x1, y1, x2 - x1, 1)
+
+    def draw(self):
+        pg.draw.line(screen, "white", (self.x1, self.y1), (self.x2, self.y2), 30)
 
 
 class Tank(pg.sprite.Sprite):
@@ -110,17 +117,18 @@ class Tank(pg.sprite.Sprite):
     def collisions(self):
         collisions = pg.sprite.spritecollide(self, all_sprites, False)
         if len(collisions) > 1:
-            if pg.sprite.spritecollideany(self, horizontal_borders):
-                if self.pos[1] < 0:
-                    self.rect.y += 20
-                elif self.pos[1] >= 0:
-                    self.rect.y += -20
-                self.angle += 180
-            if pg.sprite.spritecollideany(self, vertical_borders):
-                if self.dx < 0:
-                    self.dx = -self.dx + 1
-                elif self.dx >= 0:
-                    self.dx = -self.dx - 1
+            colidehor, colidever = pg.sprite.spritecollideany(self, horizontal_borders), pg.sprite.spritecollideany(self, vertical_borders)
+            if colidehor or colidever:
+                if colidehor:
+                    if self.dy < 0:
+                        self.dy = -self.dy + 5
+                    elif self.dy >= 0:
+                        self.dy = -self.dy - 5
+                elif colidever:
+                    if self.dx < 0:
+                        self.dx = -self.dx + 5
+                    elif self.dx >= 0:
+                        self.dx = -self.dx - 5
                 self.angle += 180
             bulcol = pg.sprite.spritecollide(self, boolets, False)
             for boolet in range(len(bulcol)):
@@ -152,12 +160,13 @@ class Tank(pg.sprite.Sprite):
 class Boolet(pg.sprite.Sprite):
     def __init__(self, speed, angle, center):
         super().__init__(all_sprites, boolets)
-        self.color = (255, 0, 0)
         self.dx, self.dy = calculate_move_vect(speed, angle)
         self.x, self.y = center[0] + self.dy, center[1] + self.dx
         self.radius = 2
         self.add(boolets)
-        self.rect = pg.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
+        self.image = pg.image.load('sprites/bullet.png')
+        self.image = pg.transform.scale(self.image, (self.radius, self.radius))
+        self.rect = self.image.get_rect()
 
     def update(self):
         self.rect = self.rect.move(self.dx, self.dy)
@@ -169,35 +178,51 @@ class Boolet(pg.sprite.Sprite):
         if colided != self:
             colided.explode()
             self.explode()
+        self.collisions()
+
+    def collisions(self):
+        collisions = pg.sprite.spritecollide(self, all_sprites, False)
+        if len(collisions) > 1:
+            colidehor, colidever = pg.sprite.spritecollideany(self, horizontal_borders), pg.sprite.spritecollideany(self, vertical_borders)
+            if colidehor or colidever:
+                if colidehor:
+                    if self.dy < 0:
+                        self.dy = -self.dy + 5
+                    elif self.dy >= 0:
+                        self.dy = -self.dy - 5
+                elif colidever:
+                    if self.dx < 0:
+                        self.dx = -self.dx + 5
+                    elif self.dx >= 0:
+                        self.dx = -self.dx - 5
 
     def draw(self, surface):
         pg.draw.circle(surface, self.color, self.rect.center, self.radius)
 
     def explode(self):
-        Explosion(self, self.rect.center, 3)
+        Explosion(self, self.rect.center, 36)
 
 
 class Explosion(pg.sprite.Sprite):
     def __init__(self, thing, center, power, duration=100):
         super().__init__(all_sprites, explosions)
         self.image = pg.image.load('sprites/explosion.jpg')
-        self.image = pg.transform.scale((1, 1))
-        self.rect = self.image.get_rect()
-        self.rect.center = center
+        self.rect = self.image.get_rect(center=center)
         self.thing = thing
         self.power = power // duration
         self.dispersion = 0
         self.duration = duration
         self.thing.kill()
 
-    def update(self):
+    def update(self, surface):
         self.dispersion += self.power
         self.duration -= 1
         if self.duration == 0:
             self.kill()
+        self.image = pg.transform.scale(self.image, (self.dispersion * 3, self.dispersion * 3))
+        self.rect = self.image.get_rect(center=self.rect.center)
+        print(self.rect.center)
 
-    def draw(self, surface):
-        self.image = pg.transform.scale(surface, (self.dispersion, self.dispersion))
 
 if __name__ == "__main__":
     pg.init()
@@ -207,18 +232,19 @@ if __name__ == "__main__":
     screenh = info.current_h
     size = (screenw, screenh)
     screen = pg.display.set_mode(size)
-
+    # Группы спрайтов
     all_sprites = pg.sprite.Group()
     vertical_borders, horizontal_borders = pg.sprite.Group(), pg.sprite.Group()
     tanks = pg.sprite.Group()
     boolets = pg.sprite.Group()
     explosions = pg.sprite.Group()
-    screen.fill((0, 0, 0))
-
+    # Границы
     Border(5, 5, screenw - 5, 5)
     Border(5, screenh - 5, screenw - 5, screenh - 5)
     Border(5, 5, 5, screenh - 5)
     Border(screenw - 5, 5, screenw - 5, screenh - 5)
+
+    screen.fill((0, 0, 0))
 
     running = True
     # Фпс
@@ -229,16 +255,18 @@ if __name__ == "__main__":
     while running:
         dt = clock.tick(v)
         screen.fill((0, 0, 0))
+        board.render()
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
+        for border in horizontal_borders:
+            border.draw()
+        for border in vertical_borders:
+            border.draw()
         keys = pg.key.get_pressed()
-        if keys[pg.K_UP] in keys or keys[pg.K_DOWN] in keys or keys[pg.K_LEFT] in keys or keys[
-            pg.K_RIGHT] in keys:
+        if keys[pg.K_UP] or keys[pg.K_DOWN] or keys[pg.K_LEFT] or keys[pg.K_RIGHT]:
             tanks.update(keys, True)
-        board.render()
         boolets.update()
-        explosions.update()
-        explosions.draw(screen)
-        tanks.draw(screen)
+        explosions.update(screen)
+        all_sprites.draw(screen)
         pg.display.flip()
