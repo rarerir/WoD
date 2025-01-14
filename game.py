@@ -1,6 +1,6 @@
 import sys
 import pygame as pg
-from pygame import Clock
+from pygame.time import Clock
 from math import floor
 import pickle
 import random
@@ -121,14 +121,14 @@ class Tank(pg.sprite.Sprite):
             if colidehor or colidever:
                 if colidehor:
                     if self.dy < 0:
-                        self.dy = -self.dy + 5
-                    elif self.dy >= 0:
-                        self.dy = -self.dy - 5
+                        self.dy = self.dy + 40
+                    elif self.dy > 0:
+                        self.dy = self.dy - 40
                 elif colidever:
                     if self.dx < 0:
-                        self.dx = -self.dx + 5
-                    elif self.dx >= 0:
-                        self.dx = -self.dx - 5
+                        self.dx = self.dx + 40
+                    elif self.dx > 0:
+                        self.dx = self.dx - 40
                 self.angle += 180
             bulcol = pg.sprite.spritecollide(self, boolets, False)
             for boolet in range(len(bulcol)):
@@ -187,14 +187,14 @@ class Boolet(pg.sprite.Sprite):
             if colidehor or colidever:
                 if colidehor:
                     if self.dy < 0:
-                        self.dy = -self.dy + 5
+                        self.dy = self.dy + 40
                     elif self.dy >= 0:
-                        self.dy = -self.dy - 5
+                        self.dy = self.dy - 40
                 elif colidever:
                     if self.dx < 0:
-                        self.dx = -self.dx + 5
+                        self.dx = self.dx + 40
                     elif self.dx >= 0:
-                        self.dx = -self.dx - 5
+                        self.dx = self.dx - 40
 
     def draw(self, surface):
         pg.draw.circle(surface, self.color, self.rect.center, self.radius)
@@ -248,7 +248,7 @@ if __name__ == "__main__":
 
     running = True
     # Фпс
-    v = 60
+    v = 1000
     clock = Clock()
 
     board = Board(screen, "newmap")
