@@ -80,7 +80,7 @@ class Tank(pg.sprite.Sprite):
         super().__init__(all_sprites, tanks)
         # Програмные
         self.original_image = pg.image.load('sprites/крутой так.png')
-        self.image = self.original_image
+        self.image = pg.transform.scale(self.original_image, (30, 30))
         self.rect = self.image.get_rect(center=spawn)
         self.pos = spawn
         # Игровые
@@ -96,12 +96,12 @@ class Tank(pg.sprite.Sprite):
         if isd:
             fps = self.speed * dt
             angfps = int(self.angspeed * dt)
+
             if keys[pg.K_UP]:
                 xy = calculate_move_vect(-fps, -self.angle + 90)
                 self.dx += xy[0]
                 self.dy += xy[1]
             elif keys[pg.K_DOWN]:
-                # не обращайте внимания на повторы это оптимизация так надо
                 xy = calculate_move_vect(fps, -self.angle + 90)
                 self.dx += xy[0]
                 self.dy += xy[1]
@@ -111,37 +111,51 @@ class Tank(pg.sprite.Sprite):
                 self.angle -= angfps
             if keys[pg.K_SPACE]:
                 self.shoot(fps)
-        self.collisions()
+
         self.move()
+        self.collisions()
 
     def collisions(self):
-        collisions = pg.sprite.spritecollide(self, all_sprites, False)
-        if len(collisions) > 1:
-            colidehor, colidever = pg.sprite.spritecollideany(self, horizontal_borders), pg.sprite.spritecollideany(self, vertical_borders)
-            if colidehor or colidever:
-                if colidehor:
-                    if self.dy < 0:
-                        self.dy = self.dy + 40
-                    elif self.dy > 0:
-                        self.dy = self.dy - 40
-                elif colidever:
-                    if self.dx < 0:
-                        self.dx = self.dx + 40
-                    elif self.dx > 0:
-                        self.dx = self.dx - 40
-                self.angle += 180
-            bulcol = pg.sprite.spritecollide(self, boolets, False)
-            for boolet in range(len(bulcol)):
-                self.hp -= 1
-                print(self.hp)
-                bulcol[boolet].explode()
+        colidehor = pg.sprite.spritecollideany(self, horizontal_borders)
+        colidever = pg.sprite.spritecollideany(self, vertical_borders)
 
-            if self.hp <= 0:
-                self.explode()
+        if colidehor:
+            if self.dy < 0:
+                self.rect.top = colidehor.rect.bottom
+            elif self.dy > 0:
+                self.rect.bottom = colidehor.rect.top
+            self.dy = 0
+
+        if colidever:
+            if self.dx < 0:
+                self.rect.left = colidever.rect.right
+            elif self.dx > 0:
+                self.rect.right = colidever.rect.left
+            self.dx = 0
+
+        bulcol = pg.sprite.spritecollide(self, boolets, False)
+        for boolet in bulcol:
+            self.hp -= 1
+            print(self.hp)
+            boolet.explode()
+
+        if self.hp <= 0:
+            self.explode()
+
+        self.check_boundaries()
+
+    def check_boundaries(self):
+        if self.rect.left < 0:
+            self.rect.left = 0
+        if self.rect.right > screenw:
+            self.rect.right = screenw
+        if self.rect.top < 0:
+            self.rect.top = 0
+        if self.rect.bottom > screenh:
+            self.rect.bottom = screenh
 
     def shoot(self, speed):
         Boolet(speed * 2, self.angle, self.rect.center)
-
 
     def move(self):
         self.image = pg.transform.rotate(self.original_image, self.angle)
@@ -248,7 +262,7 @@ if __name__ == "__main__":
 
     running = True
     # Фпс
-    v = 1000
+    v = 144
     clock = Clock()
 
     board = Board(screen, "newmap")
