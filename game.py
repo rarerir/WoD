@@ -5,12 +5,43 @@ from math import floor
 import pickle
 import random
 
+"""ну так удобнее свои цвета делать поэтому предлагаю так и просто потом вызывать вот так ==> colorList["black"]"""
+colorList = {
+    "black" : (0, 0, 0),
+    "white" : (255, 255, 255),
+    "red" : (255, 0, 0),
+    "blue" : (0, 0, 255),
+    "green" : (0, 128, 0),
+    "purple" : (128, 0, 128),
+    "brown" : (139, 69, 19),
+    "gray" : (128, 128, 128),
+    "yellow" : (255, 255, 0),
+    "darkGrey" : (105, 105, 105)
+}
+
 
 def calculate_move_vect(speed, angle_in_degrees):
     move_vec = pg.math.Vector2()
     move_vec.from_polar((speed, angle_in_degrees))
     return move_vec
 
+#экран загрузочный ну или просто отображение компании
+def downloadWin(size, screenw, screenh):
+    #1530 830
+    logoSurf = pg.image.load('images/logo.png')
+    logoRect = logoSurf.get_rect(center = (screenw//2, screenh//2))
+    surf = pg.Surface(size)
+    surf.fill(colorList["black"])
+    surfRect = surf.get_rect(center = (screenw//2, screenh//2))
+    for i in range(1, 510):
+        if i <= 255:
+            surf.set_alpha(255 - i)
+        else:
+            surf.set_alpha((255 - i)*-1)
+        screen.blit(logoSurf, logoRect)
+        screen.blit(surf, surfRect)
+        pg.display.flip()
+        pg.time.delay(1)
 
 class Board:
     # Создание поля
@@ -254,7 +285,6 @@ class Explosion(pg.sprite.Sprite):
         self.image = pg.transform.scale(self.image, (self.dispersion * 3, self.dispersion * 3))
         self.rect = self.image.get_rect(center=self.rect.center)
 
-
 if __name__ == "__main__":
     pg.init()
     # Разрешение
@@ -281,6 +311,8 @@ if __name__ == "__main__":
     running = True
     v = 144
     clock = Clock()
+
+    downloadWin(size, screenw, screenh)
 
     board = Board(screen, "newmap")
     while running:
