@@ -11,6 +11,7 @@ def calculate_move_vect(speed, angle_in_degrees):
     move_vec.from_polar((speed, angle_in_degrees))
     return move_vec
 
+
 class Board:
     # Создание поля
     def __init__(self, canvas, mapn, cell_size=30):
@@ -132,22 +133,10 @@ class Tank(pg.sprite.Sprite):
         self.collisions()
 
     def collisions(self):
-        colidehor = pg.sprite.spritecollideany(self, horizontal_borders)
-        colidever = pg.sprite.spritecollideany(self, vertical_borders)
+        self.check_boolets()
+        self.check_boundaries()
 
-        if colidehor:
-            if self.dy < 0:
-                self.rect.top = colidehor.rect.bottom
-            elif self.dy > 0:
-                self.rect.bottom = colidehor.rect.top
-            self.dy = 0
-
-        if colidever:
-            if self.dx < 0:
-                self.rect.left = colidever.rect.right
-            elif self.dx > 0:
-                self.rect.right = colidever.rect.left
-            self.dx = 0
+    def check_boolets(self):
         for boolet in boolets:
             if pg.sprite.collide_mask(self, boolet):
                 self.hp -= 1
@@ -156,8 +145,6 @@ class Tank(pg.sprite.Sprite):
 
         if self.hp <= 0:
             self.explode()
-
-        self.check_boundaries()
 
     def check_boundaries(self):
         if self.rect.left < 0:
@@ -224,19 +211,23 @@ class Boolet(pg.sprite.Sprite):
         self.angle = self.angle
 
     def collisions(self):
-        if pg.sprite.spritecollideany(self, horizontal_borders):
-            self.angle += 90
-        if pg.sprite.spritecollideany(self, vertical_borders):
-            self.angle += 90
+        self.check_boolets()
+        self.check_boundaries()
 
+    def check_boolets(self):
         bulcol = pg.sprite.spritecollide(self, boolets, False)
         if len(bulcol) > 1:
             for boolet in bulcol:
                 boolet.explode()
-
+    def check_boundaries(self):
+        if pg.sprite.spritecollideany(self, horizontal_borders):
+            self.angle += 90
+            self.hp -= 1
+        if pg.sprite.spritecollideany(self, vertical_borders):
+            self.angle += 90
+            self.hp -= 1
         if self.hp <= 0:
             self.explode()
-
 
     def explode(self):
         Explosion(self, self.rect.center, 100)
