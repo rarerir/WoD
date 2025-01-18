@@ -51,7 +51,9 @@ class Board:
 
     def spawn(self):
         spawn = (random.randrange(1, self.x + 1), random.randrange(1, self.y + 1))
-        self.tank1 = Tank((450, 450), 0.5, 3, 3)
+        self.tank1 = Tank((450, 450), 0.5, 3, 3, image="танчик2.png")
+        self.tank2 = Tank((550, 550), 0.5, 3, 3, key_forward=pg.K_w,
+                 key_backward=pg.K_s, key_left=pg.K_a, key_right=pg.K_d, key_shoot=pg.K_e, image='танчик1.png')
 
 
 class Border(pg.sprite.Sprite):
@@ -76,46 +78,56 @@ class Border(pg.sprite.Sprite):
 
 
 class Tank(pg.sprite.Sprite):
-    def __init__(self, spawn, speed, angspeed, hp, size=(60, 80), ammorecharge=1):
+    def __init__(self, spawn, speed, angspeed, hp, size=(60, 80), ammorecharge=1, maxammo=5, key_forward=pg.K_UP,
+                 key_backward=pg.K_DOWN, key_left=pg.K_LEFT, key_right=pg.K_RIGHT, key_shoot=pg.K_SPACE,
+                 image='крутой так.png'):
         super().__init__(all_sprites, tanks)
         # Игровые
         self.ammorecharge = ammorecharge
+        self.maxammo = maxammo
+        self.currentammo = maxammo
         self.hp = hp
         self.angle = 0
         self.angspeed = angspeed * 0.1
         self.speed = speed
         self.size = size
+        self.original_image = pg.image.load(f'sprites/{image}')
         # Програмные
-        self.original_image = pg.image.load('sprites/крутой так.png')
         self.original_image = pg.transform.scale(self.original_image, size)
         self.image = pg.transform.scale(self.original_image, size)
         self.rect = self.image.get_rect(center=spawn)
+        self.mask = pg.mask.from_surface(self.image)
         self.pos = spawn
         # Управление
+        self.key_forward = key_forward
+        self.key_backward = key_backward
+        self.key_left = key_left
+        self.key_right = key_right
+        self.key_shoot = key_shoot
         self.dx = 0
         self.dy = 0
 
     def update(self, keys):
         fps = self.speed * dt
         angfps = int(self.angspeed * dt)
-        if keys[0][pg.K_UP]:
+        if keys[0][self.key_forward]:
             xy = calculate_move_vect(-fps, -self.angle + 90)
             self.dx += xy[0]
             self.dy += xy[1]
-        elif keys[0][pg.K_DOWN]:
+        elif keys[0][self.key_backward]:
             xy = calculate_move_vect(fps, -self.angle + 90)
             self.dx += xy[0]
             self.dy += xy[1]
-        if keys[0][pg.K_LEFT]:
+        if keys[0][self.key_left]:
             self.angle += angfps
-        elif keys[0][pg.K_RIGHT]:
+        elif keys[0][self.key_right]:
             self.angle -= angfps
 
         for event in keys[1]:
-            if event.type == pg.KEYDOWN and event.dict.get("key") == 32:
+            if event.type == pg.KEYDOWN and event.dict.get("key") == self.key_shoot and self.currentammo > 0:
                 self.shoot()
-
-        self.ammorecharge += dt
+        if self.currentammo < self.maxammo:
+            self.currentammo += dt * self.ammorecharge
         self.move()
         self.collisions()
 
@@ -136,12 +148,11 @@ class Tank(pg.sprite.Sprite):
             elif self.dx > 0:
                 self.rect.right = colidever.rect.left
             self.dx = 0
-
-        bulcol = pg.sprite.spritecollide(self, boolets, False)
-        for boolet in bulcol:
-            self.hp -= 1
-            print(self.hp)
-            boolet.explode()
+        for boolet in boolets:
+            if pg.sprite.collide_mask(self, boolet):
+                self.hp -= 1
+                print(self.hp)
+                boolet.explode()
 
         if self.hp <= 0:
             self.explode()
@@ -159,7 +170,7 @@ class Tank(pg.sprite.Sprite):
             self.rect.bottom = screenh
 
     def shoot(self):
-        self.ammorecharge -= 10
+        self.currentammo -= 1
         spawn_position = (
             self.rect.centerx + calculate_move_vect(-self.size[1], -self.angle + 90)[0],
             self.rect.centery + calculate_move_vect(-self.size[1], -self.angle + 90)[1]
@@ -210,7 +221,7 @@ class Boolet(pg.sprite.Sprite):
         self.rect = self.image.get_rect(center=self.rect.center)
         self.rect.center += self.xy
         self.pos = (self.rect.x, self.rect.y)
-        self.angle = self.angle % 360
+        self.angle = self.angle
 
     def collisions(self):
         if pg.sprite.spritecollideany(self, horizontal_borders):
