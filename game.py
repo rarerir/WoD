@@ -5,21 +5,6 @@ from math import floor
 import pickle
 import random
 
-"""ну так удобнее свои цвета делать поэтому предлагаю так и просто потом вызывать вот так ==> colorList["black"]"""
-colorList = {
-    "black" : (0, 0, 0),
-    "white" : (255, 255, 255),
-    "red" : (255, 0, 0),
-    "blue" : (0, 0, 255),
-    "green" : (0, 128, 0),
-    "purple" : (128, 0, 128),
-    "brown" : (139, 69, 19),
-    "gray" : (128, 128, 128),
-    "yellow" : (255, 255, 0),
-    "darkGrey" : (105, 105, 105)
-}
-
-
 def calculate_move_vect(speed, angle_in_degrees):
     move_vec = pg.math.Vector2()
     move_vec.from_polar((speed, angle_in_degrees))
@@ -31,7 +16,25 @@ def downloadWin(size, screenw, screenh):
     logoSurf = pg.image.load('images/logo.png')
     logoRect = logoSurf.get_rect(center = (screenw//2, screenh//2))
     surf = pg.Surface(size)
-    surf.fill(colorList["black"])
+    surf.fill("black")
+    surfRect = surf.get_rect(center = (screenw//2, screenh//2))
+    for i in range(1, 510):
+        if i <= 255:
+            surf.set_alpha(255 - i)
+        else:
+            surf.set_alpha((255 - i)*-1)
+        screen.blit(logoSurf, logoRect)
+        screen.blit(surf, surfRect)
+        pg.display.flip()
+        pg.time.delay(1)
+
+# экран загрузочный ну или просто отображение компании
+def loadWin(size, screenw, screenh):
+    #1530 830
+    logoSurf = pg.image.load('images/logo.png')
+    logoRect = logoSurf.get_rect(center = (screenw//2, screenh//2))
+    surf = pg.Surface(size)
+    surf.fill("black")
     surfRect = surf.get_rect(center = (screenw//2, screenh//2))
     for i in range(1, 510):
         if i <= 255:
@@ -252,10 +255,10 @@ class Boolet(pg.sprite.Sprite):
                 boolet.explode()
     def check_boundaries(self):
         if pg.sprite.spritecollideany(self, horizontal_borders):
-            self.angle += 90
+            self.angle -= 90
             self.hp -= 1
         if pg.sprite.spritecollideany(self, vertical_borders):
-            self.angle += 90
+            self.angle -= 90
             self.hp -= 1
         if self.hp <= 0:
             self.explode()
@@ -311,6 +314,8 @@ if __name__ == "__main__":
     running = True
     v = 144
     clock = Clock()
+    # Включить на релизе
+    # loadWin(size, screenw, screenh)
 
     downloadWin(size, screenw, screenh)
 
