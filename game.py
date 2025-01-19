@@ -10,8 +10,9 @@ def calculate_move_vect(speed, angle_in_degrees):
     move_vec.from_polar((speed, angle_in_degrees))
     return move_vec
 
-#экран загрузочный ну или просто отображение компании
-def downloadWin(size, screenw, screenh):
+
+# экран загрузочный ну или просто отображение компании
+def loadWin(size, screenw, screenh):
     #1530 830
     logoSurf = pg.image.load('images/logo.png')
     logoRect = logoSurf.get_rect(center = (screenw//2, screenh//2))
@@ -71,6 +72,20 @@ class Board:
         self.tank1 = Tank((450, 450), 0.5, 3, 3, image="танчик2.png")
         self.tank2 = Tank((550, 550), 0.5, 3, 3, key_forward=pg.K_w,
                  key_backward=pg.K_s, key_left=pg.K_a, key_right=pg.K_d, key_shoot=pg.K_e, image='танчик1.png')
+
+
+class Cell(pg.sprite.Sprite):
+    def __init__(self, x, y, side, type):
+        super().__init__(all_sprites)
+        self.rect = pg.Rect(x, y, side, side)
+        self.type = type
+        if type == 1:
+            self.image = pg.image.load(f'sprites/кирпичи.png')
+        elif type == 2:
+            self.image = pg.image.load(f'sprites/вода.jpg')
+
+    def draw(self):
+        pg.draw.rect(screen, )
 
 
 class Border(pg.sprite.Sprite):
@@ -204,14 +219,16 @@ class Boolet(pg.sprite.Sprite):
 
         # Спавн
         self.add(boolets)
-        self.x, self.y = calculate_move_vect(-(self.speed * dt), -self.angle + 90) + center
+        vector = calculate_move_vect(-self.speed * dt, angle)
+        x, y = vector + center
+        self.dx, self.dy = vector
 
         # Картинка
         self.original_image = pg.image.load('sprites/bullet.png')
         self.original_image = pg.transform.scale(self.original_image, (self.radius, self.radius))
         self.image = self.original_image
         self.image = pg.transform.rotate(self.original_image, angle + 90)
-        self.rect = self.image.get_rect(center=(self.x, self.y))
+        self.rect = self.image.get_rect(center=(x, y))
 
     def update(self, events):
         fps = self.speed * dt
@@ -235,15 +252,24 @@ class Boolet(pg.sprite.Sprite):
         if len(bulcol) > 1:
             for boolet in bulcol:
                 boolet.explode()
+
     def check_boundaries(self):
+        if self.rect.left < 0:
+            self.rect.left = 0
+        if self.rect.right > screenw:
+            self.rect.right = screenw
+        if self.rect.top < 0:
+            self.rect.top = 0
+        if self.rect.bottom > screenh:
+            self.rect.bottom = screenh
         if pg.sprite.spritecollideany(self, horizontal_borders):
-            self.angle -= 90
+            self.angle = (-self.angle + 180) % 360
             self.hp -= 1
         if pg.sprite.spritecollideany(self, vertical_borders):
-            self.angle -= 90
+            self.angle = -self.angle % 360
             self.hp -= 1
-        if self.hp <= 0:
-            self.explode()
+        if self.hp == 0:
+            self.kill()
 
     def explode(self):
         Explosion(self, self.rect.center, 100)
@@ -281,6 +307,7 @@ if __name__ == "__main__":
     # Группы спрайтов
     all_sprites = pg.sprite.Group()
     vertical_borders, horizontal_borders = pg.sprite.Group(), pg.sprite.Group()
+    cells = pg.sprite.Group()
     tanks = pg.sprite.Group()
     boolets = pg.sprite.Group()
     explosions = pg.sprite.Group()
@@ -298,8 +325,6 @@ if __name__ == "__main__":
     clock = Clock()
     # Включить на релизе
     # loadWin(size, screenw, screenh)
-
-    downloadWin(size, screenw, screenh)
 
     board = Board(screen, "newmap")
     while running:
