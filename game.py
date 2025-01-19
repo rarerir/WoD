@@ -28,24 +28,6 @@ def downloadWin(size, screenw, screenh):
         pg.display.flip()
         pg.time.delay(1)
 
-# экран загрузочный ну или просто отображение компании
-def loadWin(size, screenw, screenh):
-    #1530 830
-    logoSurf = pg.image.load('images/logo.png')
-    logoRect = logoSurf.get_rect(center = (screenw//2, screenh//2))
-    surf = pg.Surface(size)
-    surf.fill("black")
-    surfRect = surf.get_rect(center = (screenw//2, screenh//2))
-    for i in range(1, 510):
-        if i <= 255:
-            surf.set_alpha(255 - i)
-        else:
-            surf.set_alpha((255 - i)*-1)
-        screen.blit(logoSurf, logoRect)
-        screen.blit(surf, surfRect)
-        pg.display.flip()
-        pg.time.delay(1)
-
 class Board:
     # Создание поля
     def __init__(self, canvas, mapn, cell_size=30):
