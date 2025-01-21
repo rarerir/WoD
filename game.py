@@ -5,6 +5,7 @@ from math import floor
 import pickle
 import random
 
+
 def calculate_move_vect(speed, angle_in_degrees):
     move_vec = pg.math.Vector2()
     move_vec.from_polar((speed, angle_in_degrees))
@@ -29,12 +30,13 @@ def loadWin(size, screenw, screenh):
         pg.display.flip()
         pg.time.delay(1)
 
+
 class Board:
     # Создание поля
-    def __init__(self, canvas, mapn, cell_size=30):
+    def __init__(self, canvas, mapn, cell_size=100):
         self.load(mapn)
         self.canvas = canvas
-        self.colors = ["black", "brown", "blue"]
+        self.types = [0, 1, 2]
         self.cell_size = cell_size
         # Отцентровывание
         self.left = (screenw - self.x * cell_size) / 2
@@ -48,14 +50,12 @@ class Board:
             # Отступы
             self.top = (screenh - self.y * self.cell_size) / 2
         self.left = (screenw - self.x * self.cell_size) / 2
-        # Спавн игроков
-        self.spawn()
-
-    def render(self):
         for i in range(int(self.y)):
             for j in range(int(self.x)):
-                eq = (j * self.cell_size + self.left, i * self.cell_size + self.top, self.cell_size, self.cell_size)
-                pg.draw.rect(self.canvas, self.colors[self.board[i][j]], eq)
+                eq = (j * self.cell_size + self.left, i * self.cell_size + self.top, self.cell_size)
+                self.board[i][j] = Cell(eq, self.types[self.board[i][j]], cell_size=self.cell_size)
+        # Спавн игроков
+        self.spawn()
 
     def load(self, mapnm):
         try:
@@ -67,6 +67,7 @@ class Board:
         self.x, self.y = mapstr.pop(-1)
         self.board = mapstr
 
+
     def spawn(self):
         spawn = (random.randrange(1, self.x + 1), random.randrange(1, self.y + 1))
         self.tank1 = Tank((450, 450), 0.5, 3, 3, image="танчик2.png")
@@ -75,17 +76,18 @@ class Board:
 
 
 class Cell(pg.sprite.Sprite):
-    def __init__(self, x, y, side, type):
-        super().__init__(all_sprites)
-        self.rect = pg.Rect(x, y, side, side)
-        self.type = type
-        if type == 1:
-            self.image = pg.image.load(f'sprites/кирпичи.png')
-        elif type == 2:
-            self.image = pg.image.load(f'sprites/вода.jpg')
+    images = ['sprites/земля.jpg', 'sprites/кирпичи.png', 'sprites/вода.jpg', 'sprites/коробка.jpg']
 
-    def draw(self):
-        pg.draw.rect(screen, )
+    def __init__(self, eq, type=1, cell_size=30):
+        super().__init__(all_sprites, cells)
+        self.type = type
+        self.image = pg.image.load(f'{self.images[self.type]}')
+        self.image = pg.transform.scale(self.image, (cell_size, cell_size))
+        self.rect = self.image.get_rect(x=eq[0], y=eq[1])
+        if self.type != 0:
+            if self.type != 2:
+                cells_colideable_b.add(self)
+            cells_colideable_t.add(self)
 
 
 class Border(pg.sprite.Sprite):
@@ -160,11 +162,12 @@ class Tank(pg.sprite.Sprite):
                 self.shoot()
         if self.currentammo < self.maxammo:
             self.currentammo += dt * self.ammorecharge
-        self.move()
         self.collisions()
+        self.move()
 
     def collisions(self):
         self.check_boolets()
+        self.check_cells()
         self.check_boundaries()
 
     def check_boolets(self):
@@ -176,6 +179,25 @@ class Tank(pg.sprite.Sprite):
 
         if self.hp <= 0:
             self.explode()
+
+    def check_cells(self):
+        self.rect.x += self.dx
+        collided_cell = pg.sprite.spritecollideany(self, cells_colideable_t)
+
+        if collided_cell:
+            if self.dx > 0:
+                self.rect.right = collided_cell.rect.left
+            elif self.dx < 0:
+                self.rect.left = collided_cell.rect.right
+
+        self.rect.y += self.dy
+        collided_cell = pg.sprite.spritecollideany(self, cells_colideable_t)
+
+        if collided_cell:
+            if self.dy > 0:
+                self.rect.bottom = collided_cell.rect.top
+            elif self.dy < 0:
+                self.rect.top = collided_cell.rect.bottom
 
     def check_boundaries(self):
         if self.rect.left < 0:
@@ -198,8 +220,6 @@ class Tank(pg.sprite.Sprite):
     def move(self):
         self.image = pg.transform.rotate(self.original_image, self.angle)
         self.rect = self.image.get_rect(center=self.rect.center)
-        self.rect.x += self.dx
-        self.rect.y += self.dy
         self.dx = 0
         self.dy = 0
         self.angle = self.angle % 360
@@ -245,6 +265,7 @@ class Boolet(pg.sprite.Sprite):
 
     def collisions(self):
         self.check_boolets()
+        self.check_cells()
         self.check_boundaries()
 
     def check_boolets(self):
@@ -252,6 +273,27 @@ class Boolet(pg.sprite.Sprite):
         if len(bulcol) > 1:
             for boolet in bulcol:
                 boolet.explode()
+
+    def check_cells(self):
+        self.rect.x += self.dx
+        collided_cell = pg.sprite.spritecollideany(self, cells_colideable_b)
+
+        if collided_cell:
+            if self.dx > 0:
+                self.rect.right = collided_cell.rect.left
+            elif self.dx < 0:
+                self.rect.left = collided_cell.rect.right
+        self.rect.x -= self.dx
+
+        self.rect.y += self.dy
+        collided_cell = pg.sprite.spritecollideany(self, cells_colideable_b)
+
+        if collided_cell:
+            if self.dy > 0:
+                self.rect.bottom = collided_cell.rect.top
+            elif self.dy < 0:
+                self.rect.top = collided_cell.rect.bottom
+        self.rect.y -= self.dy
 
     def check_boundaries(self):
         if self.rect.left < 0:
@@ -269,7 +311,7 @@ class Boolet(pg.sprite.Sprite):
             self.angle = -self.angle % 360
             self.hp -= 1
         if self.hp == 0:
-            self.kill()
+            self.explode()
 
     def explode(self):
         Explosion(self, self.rect.center, 100)
@@ -307,7 +349,7 @@ if __name__ == "__main__":
     # Группы спрайтов
     all_sprites = pg.sprite.Group()
     vertical_borders, horizontal_borders = pg.sprite.Group(), pg.sprite.Group()
-    cells = pg.sprite.Group()
+    cells, cells_colideable_t, cells_colideable_b = pg.sprite.Group(), pg.sprite.Group(), pg.sprite.Group()
     tanks = pg.sprite.Group()
     boolets = pg.sprite.Group()
     explosions = pg.sprite.Group()
@@ -330,7 +372,6 @@ if __name__ == "__main__":
     while running:
         dt = clock.tick(v)
         screen.fill((0, 0, 0))
-        board.render()
         # Эвенты
         events = pg.event.get()
         keys = pg.key.get_pressed()

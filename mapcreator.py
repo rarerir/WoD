@@ -3,6 +3,8 @@ from math import floor
 import os
 import sys
 from time import ctime
+import pickle
+
 
 def load_image(name, colorkey=None):
     fullname = os.path.join('sprites', name)
@@ -13,9 +15,20 @@ def load_image(name, colorkey=None):
     image = pg.image.load(fullname)
     return image
 
+
+def load(mapnm):
+    try:
+        with(open(f'maps/{mapnm}.wmap', "rb")) as f:
+            mapstr = pickle.load(f)
+    except FileNotFoundError:
+        print(f"Карта {mapnm} не найдена")
+        sys.exit()
+    return mapstr
+
+
 class Board:
     # создание поля
-    def __init__(self, width, height, canvas, cell_size=80):
+    def __init__(self, width, height, canvas, cell_size=80, board=None):
         self.images = [
             load_image("земля.jpg"),
             load_image("вода.jpg"),
@@ -25,7 +38,9 @@ class Board:
         self.width = width
         self.height = height
         self.canvas = canvas
-        self.board = [[0] * width for _ in range(height)]
+        self.board = board
+        if not board:
+            self.board = [[0] * width for _ in range(height)]
         self.cell_size = cell_size
         self.left = (screenw - x * cell_size) / 2
         self.top = (screenh - y * cell_size) / 2
@@ -69,17 +84,14 @@ class Board:
             self.on_click(cell)
 
     def save(self):
-        with open(f'maps/{ctime().replace(" ", "").replace(":", "")}.wmap', "w+") as f:
-            for row in self.board:
-                f.write(str(row) + '\n')
+        with open(f'maps/{input("Введите название карты").replace(" ", "").replace(":", "")}.wmap', "wb") as f:
+            self.board.append([x, y])
+            pickle.dump(self.board, f)
             print("Карта сохранена")
 
 
 if __name__ == "__main__":
     pg.init()
-    cells = tuple(map(int, input("Введите кол-во клеток по x и y соответственно (через пробел): \n").split()))
-    x = cells[0]
-    y = cells[1]
     info = pg.display.Info()
     screenw = info.current_w
     screenh = info.current_h
@@ -87,8 +99,18 @@ if __name__ == "__main__":
     size = (screenw, screenh)
     screen = pg.display.set_mode(size)
     screen.fill((0, 0, 0))
-    board = Board(x, y, screen)
-    board.render()
+    choice = input("1.Загрузить карту\n2.Делать с нуля")
+    if choice == '2':
+        cells = tuple(map(int, input("Введите кол-во клеток по x и y соответственно (через пробел): \n").split()))
+        x = cells[0]
+        y = cells[1]
+        board = Board(x, y, screen)
+        board.render()
+    elif choice == '1':
+        map = load(input("Введите название карты"))
+        xy = map.pop(-1)
+        Board(xy[0], xy[1], screen, map)
+
     print("Для того что-бы сохранить нажмите enter")
     while running:
         for event in pg.event.get():
