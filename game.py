@@ -14,13 +14,16 @@ def calculate_move_vect(speed, angle_in_degrees):
 
 # экран загрузочный ну или просто отображение компании
 def loadWin(size, screenw, screenh):
-    #1530 830
+    #1530 830\
+    stop = False
     logoSurf = pg.image.load('images/logo.png')
     logoRect = logoSurf.get_rect(center = (screenw//2, screenh//2))
     surf = pg.Surface(size)
     surf.fill("black")
     surfRect = surf.get_rect(center = (screenw//2, screenh//2))
     for i in range(1, 510):
+        if stop:
+            break
         if i <= 255:
             surf.set_alpha(255 - i)
         else:
@@ -28,14 +31,17 @@ def loadWin(size, screenw, screenh):
         screen.blit(logoSurf, logoRect)
         screen.blit(surf, surfRect)
         pg.display.flip()
-        pg.time.delay(1)
+        for j in pg.event.get():
+            if j.type == pg.KEYDOWN:
+                stop = True
+                break
+
 
 
 class Board:
     # Создание поля
-    def __init__(self, canvas, mapn, cell_size=100):
+    def __init__(self, mapn, cell_size=100):
         self.load(mapn)
-        self.canvas = canvas
         self.types = [0, 1, 2]
         self.cell_size = cell_size
         # Отцентровывание
@@ -84,6 +90,7 @@ class Cell(pg.sprite.Sprite):
         self.image = pg.image.load(f'{self.images[self.type]}')
         self.image = pg.transform.scale(self.image, (cell_size, cell_size))
         self.rect = self.image.get_rect(x=eq[0], y=eq[1])
+        self.mask = pg.mask.from_surface(self.image)
         if self.type != 0:
             if self.type != 2:
                 cells_colideable_b.add(self)
@@ -112,7 +119,7 @@ class Border(pg.sprite.Sprite):
 
 
 class Tank(pg.sprite.Sprite):
-    def __init__(self, spawn, speed, angspeed, hp, size=(60, 80), ammorecharge=1, maxammo=5, key_forward=pg.K_UP,
+    def __init__(self, spawn, speed, angspeed, hp, size=(100, 50), ammorecharge=1, maxammo=5, key_forward=pg.K_UP,
                  key_backward=pg.K_DOWN, key_left=pg.K_LEFT, key_right=pg.K_RIGHT, key_shoot=pg.K_SPACE,
                  image='крутой так.png'):
         super().__init__(all_sprites, tanks)
@@ -181,23 +188,24 @@ class Tank(pg.sprite.Sprite):
             self.explode()
 
     def check_cells(self):
-        self.rect.x += self.dx
         collided_cell = pg.sprite.spritecollideany(self, cells_colideable_t)
-
         if collided_cell:
-            if self.dx > 0:
-                self.rect.right = collided_cell.rect.left
-            elif self.dx < 0:
-                self.rect.left = collided_cell.rect.right
+            collided_mask = collided_cell.mask
+            offset_x = int(collided_cell.rect.x - self.rect.x)
+            offset_y = int(collided_cell.rect.y - self.rect.y)
 
-        self.rect.y += self.dy
-        collided_cell = pg.sprite.spritecollideany(self, cells_colideable_t)
+            if self.mask.overlap(collided_mask, (offset_x, offset_y)):
+                if abs(self.dx) > abs(self.dy):
+                    if self.dx > 0:
+                        self.rect.right = collided_cell.rect.left - 2
+                    elif self.dx < 0:
+                        self.rect.left = collided_cell.rect.right + 2
+                else:
+                    if self.dy > 0:
+                        self.rect.bottom = collided_cell.rect.top + 2
+                    elif self.dy < 0:
+                        self.rect.top = collided_cell.rect.bottom - 2
 
-        if collided_cell:
-            if self.dy > 0:
-                self.rect.bottom = collided_cell.rect.top
-            elif self.dy < 0:
-                self.rect.top = collided_cell.rect.bottom
 
     def check_boundaries(self):
         if self.rect.left < 0:
@@ -220,6 +228,9 @@ class Tank(pg.sprite.Sprite):
     def move(self):
         self.image = pg.transform.rotate(self.original_image, self.angle)
         self.rect = self.image.get_rect(center=self.rect.center)
+        self.mask = pg.mask.from_surface(self.image)
+        self.rect.x += self.dx
+        self.rect.y += self.dy
         self.dx = 0
         self.dy = 0
         self.angle = self.angle % 360
@@ -253,8 +264,8 @@ class Boolet(pg.sprite.Sprite):
     def update(self, events):
         fps = self.speed * dt
         self.xy = calculate_move_vect(-fps, -self.angle + 90)
-        self.move()
         self.collisions()
+        self.move()
 
     def move(self):
         self.image = pg.transform.rotate(self.original_image, self.angle + 90)
@@ -338,6 +349,7 @@ class Explosion(pg.sprite.Sprite):
         self.image = pg.transform.scale(self.image, (self.dispersion * 3, self.dispersion * 3))
         self.rect = self.image.get_rect(center=self.rect.center)
 
+
 if __name__ == "__main__":
     pg.init()
     # Разрешение
@@ -366,9 +378,9 @@ if __name__ == "__main__":
     v = 144
     clock = Clock()
     # Включить на релизе
-    # loadWin(size, screenw, screenh)
+    loadWin(size, screenw, screenh)
 
-    board = Board(screen, "newmap")
+    board = Board("newmap")
     while running:
         dt = clock.tick(v)
         screen.fill((0, 0, 0))
