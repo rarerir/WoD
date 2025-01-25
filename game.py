@@ -49,8 +49,6 @@ def load_image(name, colorkey=None):
     return image
 
 
-
-
 class Board:
     # Создание поля
     def __init__(self, mapn, cell_size=100):
@@ -362,53 +360,56 @@ class Explosion(pg.sprite.Sprite):
         self.rect = self.image.get_rect(center=self.rect.center)
 
 
-def mainloop():
-    running = True
-    board = Board("newmap")
-    while running:
-        dt = clock.tick(v)
+class Game:
+    def __init__(self):
+        global screenw, screenh, screen, all_sprites, vertical_borders, horizontal_borders, cells, cells_colideable_t
+        global cells_colideable_b, tanks, boolets, explosions, clock, v
+
+        pg.init()
+        # Разрешение
+        info = pg.display.Info()
+        screenw = info.current_w
+        screenh = info.current_h
+        size = (screenw, screenh)
+        screen = pg.display.set_mode(size)
+        # Группы спрайтов
+        all_sprites = pg.sprite.Group()
+        vertical_borders, horizontal_borders = pg.sprite.Group(), pg.sprite.Group()
+        cells, cells_colideable_t, cells_colideable_b = pg.sprite.Group(), pg.sprite.Group(), pg.sprite.Group()
+        tanks = pg.sprite.Group()
+        boolets = pg.sprite.Group()
+        explosions = pg.sprite.Group()
+        # Границы
+        Border(5, 5, screenw - 5, 5)
+        Border(5, screenh - 5, screenw - 5, screenh - 5)
+        Border(5, 5, 5, screenh - 5)
+        Border(screenw - 5, 5, screenw - 5, screenh - 5)
+
         screen.fill((0, 0, 0))
-        # Эвенты
-        events = pg.event.get()
-        keys = pg.key.get_pressed()
-        for event in events:
-            if event.type == pg.QUIT:
-                running = False
 
-        for border in horizontal_borders:
-            border.draw()
-        for border in vertical_borders:
-            border.draw()
-        # Обновление спрайтов
-        all_sprites.update((keys, events), dt)
-        all_sprites.draw(screen)
+        # Фпс
+        v = 144
+        clock = Clock()
 
-        pg.display.flip()
+    def mainloop(self):
+        running = True
+        board = Board("newmap")
+        while running:
+            dt = clock.tick(v)
+            screen.fill((0, 0, 0))
+            # Эвенты
+            events = pg.event.get()
+            keys = pg.key.get_pressed()
+            for event in events:
+                if event.type == pg.QUIT:
+                    return False
 
+            for border in horizontal_borders:
+                border.draw()
+            for border in vertical_borders:
+                border.draw()
+            # Обновление спрайтов
+            all_sprites.update((keys, events), dt)
+            all_sprites.draw(screen)
 
-pg.init()
-# Разрешение
-info = pg.display.Info()
-screenw = info.current_w
-screenh = info.current_h
-size = (screenw, screenh)
-screen = pg.display.set_mode(size)
-# Группы спрайтов
-all_sprites = pg.sprite.Group()
-vertical_borders, horizontal_borders = pg.sprite.Group(), pg.sprite.Group()
-cells, cells_colideable_t, cells_colideable_b = pg.sprite.Group(), pg.sprite.Group(), pg.sprite.Group()
-tanks = pg.sprite.Group()
-boolets = pg.sprite.Group()
-explosions = pg.sprite.Group()
-# Границы
-Border(5, 5, screenw - 5, 5)
-Border(5, screenh - 5, screenw - 5, screenh - 5)
-Border(5, 5, 5, screenh - 5)
-Border(screenw - 5, 5, screenw - 5, screenh - 5)
-
-screen.fill((0, 0, 0))
-
-# Фпс
-v = 144
-clock = Clock()
-mainloop()
+            pg.display.flip()

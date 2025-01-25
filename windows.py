@@ -2,6 +2,7 @@ import sys
 import pygame as pg
 import random
 import os
+import game
 
 
 def loadWin(size, screenw, screenh):
@@ -83,8 +84,12 @@ def start_screen(size, screenw, screenh):
                 x, y = pg.mouse.get_pos()
                 if ((text_x - 10 <= x) and (x <= text_x + text_w + 10)) and ((text_y - 10 <= y) and (
                         y <= text_y + text_h + 10)):
+                    for boolet in boolets:
+                        boolet.kill()
                     return 3
                 if ((screenw - 200 <= x) and (x <= screenw)) and ((0 <= y) and (y <= 200)):
+                    for boolet in boolets:
+                        boolet.kill()
                     return 2
                 if (exit_text_x - 10 <= x and x <= exit_text_x + exit_text.get_width() + 10) and \
                         (exit_text_y - 10 <= y and y <= exit_text_y + exit_text.get_height() + 10):
@@ -194,6 +199,7 @@ if __name__ == "__main__":
     trail_surface.fill((0, 0, 0))
     trail_surface.set_alpha(99)
     dt = clock.tick(v) / 10
+    gamec = game.Game()
 
     loadWin(size, screenw, screenh)
     state = 1
@@ -203,6 +209,6 @@ if __name__ == "__main__":
         if state == 2:
             state = settings_screen(size, screenw, screenh)
         if state == 3:
-            import game
+            state = gamec.mainloop()
     pg.quit()
     sys.exit()
