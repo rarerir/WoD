@@ -296,24 +296,17 @@ class Boolet(pg.sprite.Sprite):
                 boolet.explode()
 
     def check_cells(self):
-        self.rect.x += self.dx
         collided_cell = pg.sprite.spritecollideany(self, cells_colideable_b)
 
         if collided_cell:
-            if self.dx > 0:
-                self.rect.right = collided_cell.rect.left
-            elif self.dx < 0:
-                self.rect.left = collided_cell.rect.right
+            self.dx = -self.dx
         self.rect.x -= self.dx
 
         self.rect.y += self.dy
         collided_cell = pg.sprite.spritecollideany(self, cells_colideable_b)
 
         if collided_cell:
-            if self.dy > 0:
-                self.rect.bottom = collided_cell.rect.top
-            elif self.dy < 0:
-                self.rect.top = collided_cell.rect.bottom
+            self.dy = -self.dy
         self.rect.y -= self.dy
 
     def check_boundaries(self):
@@ -356,7 +349,7 @@ class Explosion(pg.sprite.Sprite):
         self.duration -= 1
         if self.duration == 0:
             self.kill()
-        self.image = pg.transform.scale(self.image, (self.dispersion * dt, self.dispersion * dt))
+        self.image = pg.transform.scale(self.image, (self.dispersion, self.dispersion))
         self.rect = self.image.get_rect(center=self.rect.center)
 
 
@@ -413,3 +406,8 @@ class Game:
             all_sprites.draw(screen)
 
             pg.display.flip()
+
+
+if __name__ == "__main__":
+    game = Game()
+    game.mainloop()
