@@ -6,6 +6,7 @@ import pickle
 import random
 import os
 
+
 def calculate_move_vect(speed, angle_in_degrees):
     move_vec = pg.math.Vector2()
     move_vec.from_polar((speed, angle_in_degrees))
@@ -48,79 +49,6 @@ def load_image(name, colorkey=None):
     return image
 
 
-def start_screen(size, screenw, screenh):
-    fon = pg.transform.scale(load_image('фон_1.gif'), (screenw, screenh))
-    settings = pg.transform.scale(load_image('настройки.png'), (200, 200))
-    screen.blit(fon, (0, 0))
-    screen.blit(settings, (screenw - 200, 0))
-
-    font = pg.font.Font(None, 200)
-    text = font.render("ИГРАТЬ", True, (100, 255, 100))
-    text_x = screenw // 2 - text.get_width() // 2
-    text_y = screenh // 2 - text.get_height() // 2
-    text_w = text.get_width()
-    text_h = text.get_height()
-    screen.blit(text, (text_x, text_y))
-    pg.draw.rect(screen, (0, 255, 0), (text_x - 10, text_y - 10,
-                                       text_w + 20, text_h + 20), 1)
-
-    exit_font = pg.font.Font(None, 100)
-    exit_text = exit_font.render("ВЫЙТИ", True, (100, 255, 100))
-    exit_text_x = screenw // 2 - exit_text.get_width() // 2
-    exit_text_y = text_y + text.get_height() + 50
-    screen.blit(exit_text, (exit_text_x, exit_text_y))
-    pg.draw.rect(screen, (0, 255, 0), (exit_text_x - 10, exit_text_y - 10,
-                                       exit_text.get_width() + 20, exit_text.get_height() + 20), 1)
-
-    while True:
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                pg.quit()
-                sys.exit()
-            if event.type == pg.MOUSEBUTTONDOWN:
-                x, y = pg.mouse.get_pos()
-                if ((text_x - 10 <= x) and (x <= text_x + text_w + 10)) and (( text_y - 10 <= y) and (
-                        y <= text_y + text_h + 10)):
-                    return
-                if ((screenw - 200 <= x) and (x <= screenw)) and ((0 <= y) and (y <= 200)):
-                    settings_screen(size, screenw, screenh)
-                if (exit_text_x - 10 <= x and x <= exit_text_x + exit_text.get_width() + 10) and \
-                        (exit_text_y - 10 <= y and y <= exit_text_y + exit_text.get_height() + 10):
-                    pg.quit()
-                    sys.exit()
-        pg.display.flip()
-        clock.tick(v)
-
-
-def settings_screen(size, screenw, screenh):
-    fon = pg.transform.scale(load_image('фон_1.gif'), (screenw, screenh))
-    screen.blit(fon, (0, 0))
-
-    font = pg.font.Font(None, 100)
-    text = font.render("Настройки", True, (255, 255, 255))
-    text_rect = text.get_rect(center=(screenw // 2, screenh // 4))
-    screen.blit(text, text_rect)
-
-    back_button = font.render("Назад", True, (255, 255, 255))
-    back_x = screenw // 2 - back_button.get_width() // 2
-    back_y = screenh // 2 - back_button.get_height() // 2 + 100
-    screen.blit(back_button, (back_x, back_y))
-    pg.draw.rect(screen, (0, 255, 0), (back_x - 10, back_y - 10,
-                                       back_button.get_width() + 20, back_button.get_height() + 20), 1)
-
-    while True:
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                pg.quit()
-                sys.exit()
-            if event.type == pg.MOUSEBUTTONDOWN:
-                x, y = pg.mouse.get_pos()
-                if (back_x - 10 <= x and x <= back_x + back_button.get_width() + 10) and (
-                        back_y - 10 <= y and y <= back_y + back_button.get_height() + 10):
-                    start_screen(size, screenw, screenh)
-
-        pg.display.flip()
-        clock.tick(v)
 
 
 class Board:
@@ -204,7 +132,7 @@ class Border(pg.sprite.Sprite):
 
 
 class Tank(pg.sprite.Sprite):
-    def __init__(self, spawn, speed, angspeed, hp, size=(100, 50), ammorecharge=1, maxammo=5, key_forward=pg.K_UP,
+    def __init__(self, spawn, speed, angspeed, hp, size=(50, 50), ammorecharge=1, maxammo=5, key_forward=pg.K_UP,
                  key_backward=pg.K_DOWN, key_left=pg.K_LEFT, key_right=pg.K_RIGHT, key_shoot=pg.K_SPACE,
                  image='крутой так.png'):
         super().__init__(all_sprites, tanks)
@@ -233,7 +161,7 @@ class Tank(pg.sprite.Sprite):
         self.dx = 0
         self.dy = 0
 
-    def update(self, keys):
+    def update(self, keys, dt):
         fps = self.speed * dt
         angfps = int(self.angspeed * dt)
         if keys[0][self.key_forward]:
@@ -251,7 +179,7 @@ class Tank(pg.sprite.Sprite):
 
         for event in keys[1]:
             if event.type == pg.KEYDOWN and event.dict.get("key") == self.key_shoot and self.currentammo > 0:
-                self.shoot()
+                self.shoot(dt)
         if self.currentammo < self.maxammo:
             self.currentammo += dt * self.ammorecharge
         self.collisions()
@@ -301,13 +229,13 @@ class Tank(pg.sprite.Sprite):
         if self.rect.bottom > screenh:
             self.rect.bottom = screenh
 
-    def shoot(self):
+    def shoot(self, dt):
         self.currentammo -= 1
         spawn_position = (
             self.rect.centerx + calculate_move_vect(-self.size[1], -self.angle + 90)[0],
             self.rect.centery + calculate_move_vect(-self.size[1], -self.angle + 90)[1]
         )
-        Boolet(self.speed * 1.5, self.angle, spawn_position)
+        Boolet(self.speed * 1.5, self.angle, spawn_position, dt)
 
     def move(self):
         self.image = pg.transform.rotate(self.original_image, self.angle)
@@ -324,7 +252,7 @@ class Tank(pg.sprite.Sprite):
 
 
 class Boolet(pg.sprite.Sprite):
-    def __init__(self, speed, angle, center):
+    def __init__(self, speed, angle, center, dt):
         super().__init__(all_sprites, boolets)
         # Игровые
         self.radius = 20
@@ -345,7 +273,7 @@ class Boolet(pg.sprite.Sprite):
         self.image = pg.transform.rotate(self.original_image, angle + 90)
         self.rect = self.image.get_rect(center=(x, y))
 
-    def update(self, events):
+    def update(self, events, dt):
         fps = self.speed * dt
         self.xy = calculate_move_vect(-fps, -self.angle + 90)
         self.collisions()
@@ -425,46 +353,18 @@ class Explosion(pg.sprite.Sprite):
         self.duration = duration
         self.thing.kill()
 
-    def update(self, events):
+    def update(self, events, dt):
         self.dispersion += self.power
         self.duration -= 1
         if self.duration == 0:
             self.kill()
-        self.image = pg.transform.scale(self.image, (self.dispersion * 3, self.dispersion * 3))
+        self.image = pg.transform.scale(self.image, (self.dispersion * dt, self.dispersion * dt))
         self.rect = self.image.get_rect(center=self.rect.center)
 
-if __name__ == "__main__":
-    pg.init()
-    # Разрешение
-    info = pg.display.Info()
-    screenw = info.current_w
-    screenh = info.current_h
-    size = (screenw, screenh)
-    screen = pg.display.set_mode(size)
-    # Группы спрайтов
-    all_sprites = pg.sprite.Group()
-    vertical_borders, horizontal_borders = pg.sprite.Group(), pg.sprite.Group()
-    cells, cells_colideable_t, cells_colideable_b = pg.sprite.Group(), pg.sprite.Group(), pg.sprite.Group()
-    tanks = pg.sprite.Group()
-    boolets = pg.sprite.Group()
-    explosions = pg.sprite.Group()
-    # Границы
-    Border(5, 5, screenw - 5, 5)
-    Border(5, screenh - 5, screenw - 5, screenh - 5)
-    Border(5, 5, 5, screenh - 5)
-    Border(screenw - 5, 5, screenw - 5, screenh - 5)
 
-    screen.fill((0, 0, 0))
-
-    # Фпс
+def mainloop():
     running = True
-    v = 144
-    clock = Clock()
-    # Включить на релизе
-    loadWin(size, screenw, screenh)
-    start_screen(size, screenw, screenh)
-
-    board = Board(screen, "newmap")
+    board = Board("newmap")
     while running:
         dt = clock.tick(v)
         screen.fill((0, 0, 0))
@@ -480,7 +380,35 @@ if __name__ == "__main__":
         for border in vertical_borders:
             border.draw()
         # Обновление спрайтов
-        all_sprites.update((keys, events))
+        all_sprites.update((keys, events), dt)
         all_sprites.draw(screen)
 
         pg.display.flip()
+
+
+pg.init()
+# Разрешение
+info = pg.display.Info()
+screenw = info.current_w
+screenh = info.current_h
+size = (screenw, screenh)
+screen = pg.display.set_mode(size)
+# Группы спрайтов
+all_sprites = pg.sprite.Group()
+vertical_borders, horizontal_borders = pg.sprite.Group(), pg.sprite.Group()
+cells, cells_colideable_t, cells_colideable_b = pg.sprite.Group(), pg.sprite.Group(), pg.sprite.Group()
+tanks = pg.sprite.Group()
+boolets = pg.sprite.Group()
+explosions = pg.sprite.Group()
+# Границы
+Border(5, 5, screenw - 5, 5)
+Border(5, screenh - 5, screenw - 5, screenh - 5)
+Border(5, 5, 5, screenh - 5)
+Border(screenw - 5, 5, screenw - 5, screenh - 5)
+
+screen.fill((0, 0, 0))
+
+# Фпс
+v = 144
+clock = Clock()
+mainloop()
