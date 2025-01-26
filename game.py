@@ -37,10 +37,14 @@ def intersection(start1, end1, start2, end2):
     if seg1_line2_start * seg1_line2_end > 0 or seg2_line1_start * seg2_line1_end > 0:
         return False
 
+    startend = seg1_line2_start - seg1_line2_end
     # Точка пересечения
-    u = seg1_line2_start / (seg1_line2_start - seg1_line2_end)
-    out_intersection = start1 + (dir1 * u)
+    if startend == 0:
+        u = 0
+    else:
+        u = seg1_line2_start / startend
 
+    out_intersection = start1 + (dir1 * u)
     return out_intersection
 
 
@@ -100,7 +104,7 @@ class Board:
         for i in range(int(self.y)):
             for j in range(int(self.x)):
                 eq = (j * self.cell_size + self.left, i * self.cell_size + self.top, self.cell_size)
-                self.board[i][j] = Cell(eq, self.types[self.board[i][j]], cell_size=self.cell_size)
+                self.board[i][j] = Cell(eq, self.board, (i, j), self.types[self.board[i][j]], cell_size=self.cell_size)
         # Спавн игроков
         self.spawn()
 
@@ -114,7 +118,6 @@ class Board:
         self.x, self.y = mapstr.pop(-1)
         self.board = mapstr
 
-
     def spawn(self):
         spawn = (random.randrange(1, self.x + 1), random.randrange(1, self.y + 1))
         self.tank1 = Tank((450, 450), 0.5, 3, 3, image="танчик2.png")
@@ -125,13 +128,17 @@ class Board:
 class Cell(pg.sprite.Sprite):
     images = ['sprites/земля.jpg', 'sprites/кирпичи.png', 'sprites/вода.jpg', 'sprites/коробка.jpg']
 
-    def __init__(self, eq, type=1, cell_size=30):
+    def __init__(self, eq, board, pos, type=1, cell_size=30):
         super().__init__(all_sprites, cells)
         self.type = type
         self.image = pg.image.load(f'{self.images[self.type]}')
         self.image = pg.transform.scale(self.image, (cell_size, cell_size))
         self.rect = self.image.get_rect(x=eq[0], y=eq[1])
         self.mask = pg.mask.from_surface(self.image)
+        # Надо доделать
+        self.board = board
+        self.pos = pos
+
         if self.type != 0:
             if self.type != 2:
                 cells_colideable_b.add(self)
@@ -229,8 +236,28 @@ class Tank(pg.sprite.Sprite):
             self.explode()
 
     def check_cells(self):
-        pass
-        # self.rect.x += self.dx
+        collided_cell = pg.sprite.spritecollideany(self, cells_colideable_t)
+        if collided_cell:
+            topleft, bottomleft, topright, bottomright = collided_cell.get_sides()
+            linestart = Vector2(floor(self.rect.center[0] - self.dx), floor(self.rect.center[1] - self.dy))
+            lineend = Vector2(self.rect.center[0], self.rect.center[1])
+            # Верх
+            if intersection(topleft, topright, linestart, lineend):
+                print("up")
+                self.rect.bottom = collided_cell.rect.top
+            # Низ
+            if intersection(bottomleft, bottomright, linestart, lineend):
+                print("bottom")
+                self.rect.top = collided_cell.rect.bottom
+            # Лево
+            if intersection(topleft, bottomleft, linestart, lineend):
+                print("left")
+                self.rect.right = collided_cell.rect.left
+            # Право
+            if intersection(topright, bottomright, linestart, lineend):
+                print("right")
+                self.rect.left = collided_cell.rect.right
+
         # collided_cell = pg.sprite.spritecollideany(self, cells_colideable_t)
         #
         # if collided_cell:
@@ -239,10 +266,6 @@ class Tank(pg.sprite.Sprite):
         #     elif self.dx < 0:
         #         self.rect.left = collided_cell.rect.right
         #
-        # self.rect.y += self.dy
-        # collided_cell = pg.sprite.spritecollideany(self, cells_colideable_t)
-        #
-        # if collided_cell:
         #     if self.dy > 0:
         #         self.rect.bottom = collided_cell.rect.top
         #     elif self.dy < 0:
@@ -299,7 +322,7 @@ class Boolet(pg.sprite.Sprite):
         self.original_image = pg.image.load('sprites/bullet.png')
         self.original_image = pg.transform.scale(self.original_image, (self.radius, self.radius))
         self.image = self.original_image
-        self.image = pg.transform.rotate(self.original_image, -angle + 90)
+        self.image = pg.transform.rotate(self.original_image, self.angle + 90)
         self.rect = self.image.get_rect(center=(x, y))
 
     def update(self, events, dt):
@@ -332,7 +355,7 @@ class Boolet(pg.sprite.Sprite):
             if intersection(topleft, topright, linestart, lineend):
                 print("up")
                 if movevector[0] > 0:
-                    self.angle = self.angle + 90
+                    self.dx
                 elif movevector[0] < 0:
                     self.angle = self.angle - 90
                 else:
@@ -368,6 +391,7 @@ class Boolet(pg.sprite.Sprite):
                 else:
                     self.angle = -self.angle
                 self.rect.right = collided_cell.rect.right + self.rect.width
+
 
         self.angle = self.angle % 360
         self.image = pg.transform.rotate(self.original_image, self.angle + 90)
