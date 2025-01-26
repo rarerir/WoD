@@ -2,20 +2,50 @@ import sys
 import pygame as pg
 from pygame.time import Clock
 from math import floor
+from pygame import Vector2
 import pickle
 import random
 import os
 
 
+# Вектор движения
 def calculate_move_vect(speed, angle_in_degrees):
-    move_vec = pg.math.Vector2()
+    move_vec = Vector2()
     move_vec.from_polar((speed, angle_in_degrees))
     return move_vec
 
 
+# Пересечение отрезков
+def intersection(start1, end1, start2, end2):
+    dir1 = end1 - start1
+    dir2 = end2 - start2
+
+    a1 = -dir1.y
+    b1 = dir1.x
+    d1 = -(a1 * start1.x + b1 * start1.y)
+
+    a2 = -dir2.y
+    b2 = dir2.x
+    d2 = -(a2 * start2.x + b2 * start2.y)
+
+    seg1_line2_start = a2 * start1.x + b2 * start1.y + d2
+    seg1_line2_end = a2 * end1.x + b2 * end1.y + d2
+
+    seg2_line1_start = a1 * start2.x + b1 * start2.y + d1
+    seg2_line1_end = a1 * end2.x + b1 * end2.y + d1
+
+    if seg1_line2_start * seg1_line2_end > 0 or seg2_line1_start * seg2_line1_end > 0:
+        return False
+
+    # Точка пересечения
+    u = seg1_line2_start / (seg1_line2_start - seg1_line2_end)
+    out_intersection = start1 + (dir1 * u)
+
+    return out_intersection
+
+
 # экран загрузочный ну или просто отображение компании
 def loadWin(size, screenw, screenh):
-    #1530 830\
     stop = False
     logoSurf = pg.image.load('images/logo.png')
     logoRect = logoSurf.get_rect(center = (screenw//2, screenh//2))
@@ -107,6 +137,10 @@ class Cell(pg.sprite.Sprite):
                 cells_colideable_b.add(self)
             cells_colideable_t.add(self)
 
+    def get_sides(self):
+        return (Vector2(self.rect.topleft), Vector2(self.rect.bottomleft), Vector2(self.rect.topright),
+                Vector2(self.rect.bottomright))
+
 
 class Border(pg.sprite.Sprite):
     # строго вертикальный или строго горизонтальный отрезок
@@ -163,13 +197,9 @@ class Tank(pg.sprite.Sprite):
         fps = self.speed * dt
         angfps = int(self.angspeed * dt)
         if keys[0][self.key_forward]:
-            xy = calculate_move_vect(-fps, -self.angle + 90)
-            self.dx += xy[0]
-            self.dy += xy[1]
+            self.dx, self.dy = calculate_move_vect(-fps, -self.angle + 90)
         elif keys[0][self.key_backward]:
-            xy = calculate_move_vect(fps, -self.angle + 90)
-            self.dx += xy[0]
-            self.dy += xy[1]
+            self.dx, self.dy = calculate_move_vect(fps, -self.angle + 90)
         if keys[0][self.key_left]:
             self.angle += angfps
         elif keys[0][self.key_right]:
@@ -199,23 +229,24 @@ class Tank(pg.sprite.Sprite):
             self.explode()
 
     def check_cells(self):
-        self.rect.x += self.dx
-        collided_cell = pg.sprite.spritecollideany(self, cells_colideable_t)
-
-        if collided_cell:
-            if self.dx > 0:
-                self.rect.right = collided_cell.rect.left
-            elif self.dx < 0:
-                self.rect.left = collided_cell.rect.right
-
-        self.rect.y += self.dy
-        collided_cell = pg.sprite.spritecollideany(self, cells_colideable_t)
-
-        if collided_cell:
-            if self.dy > 0:
-                self.rect.bottom = collided_cell.rect.top
-            elif self.dy < 0:
-                self.rect.top = collided_cell.rect.bottom
+        pass
+        # self.rect.x += self.dx
+        # collided_cell = pg.sprite.spritecollideany(self, cells_colideable_t)
+        #
+        # if collided_cell:
+        #     if self.dx > 0:
+        #         self.rect.right = collided_cell.rect.left
+        #     elif self.dx < 0:
+        #         self.rect.left = collided_cell.rect.right
+        #
+        # self.rect.y += self.dy
+        # collided_cell = pg.sprite.spritecollideany(self, cells_colideable_t)
+        #
+        # if collided_cell:
+        #     if self.dy > 0:
+        #         self.rect.bottom = collided_cell.rect.top
+        #     elif self.dy < 0:
+        #         self.rect.top = collided_cell.rect.bottom
 
     def check_boundaries(self):
         if self.rect.left < 0:
@@ -233,7 +264,7 @@ class Tank(pg.sprite.Sprite):
             self.rect.centerx + calculate_move_vect(-self.size[1], -self.angle + 90)[0],
             self.rect.centery + calculate_move_vect(-self.size[1], -self.angle + 90)[1]
         )
-        Boolet(self.speed * 1.5, self.angle, spawn_position, dt)
+        Boolet(self.speed * 1.3, self.angle, spawn_position, dt)
 
     def move(self):
         self.image = pg.transform.rotate(self.original_image, self.angle)
@@ -268,25 +299,21 @@ class Boolet(pg.sprite.Sprite):
         self.original_image = pg.image.load('sprites/bullet.png')
         self.original_image = pg.transform.scale(self.original_image, (self.radius, self.radius))
         self.image = self.original_image
-        self.image = pg.transform.rotate(self.original_image, angle + 90)
+        self.image = pg.transform.rotate(self.original_image, -angle + 90)
         self.rect = self.image.get_rect(center=(x, y))
 
     def update(self, events, dt):
         fps = self.speed * dt
         self.xy = calculate_move_vect(-fps, -self.angle + 90)
-        self.collisions()
+        self.collisions(self.xy)
         self.move()
 
     def move(self):
-        self.image = pg.transform.rotate(self.original_image, self.angle + 90)
-        self.rect = self.image.get_rect(center=self.rect.center)
         self.rect.center += self.xy
-        self.pos = (self.rect.x, self.rect.y)
-        self.angle = self.angle
 
-    def collisions(self):
+    def collisions(self, movevector):
         self.check_boolets()
-        self.check_cells()
+        self.check_cells(movevector)
         self.check_boundaries()
 
     def check_boolets(self):
@@ -295,32 +322,60 @@ class Boolet(pg.sprite.Sprite):
             for boolet in bulcol:
                 boolet.explode()
 
-    def check_cells(self):
+    def check_cells(self, movevector):
         collided_cell = pg.sprite.spritecollideany(self, cells_colideable_b)
-
         if collided_cell:
-            self.dx = -self.dx
-        self.rect.x -= self.dx
+            topleft, bottomleft, topright, bottomright = collided_cell.get_sides()
+            linestart = Vector2(floor(self.rect.center[0] - movevector[0]), floor(self.rect.center[1] - movevector[1]))
+            lineend = Vector2(self.rect.center[0], self.rect.center[1])
+            # Верх
+            if intersection(topleft, topright, linestart, lineend):
+                print("up")
+                if movevector[0] > 0:
+                    self.angle = self.angle + 90
+                elif movevector[0] < 0:
+                    self.angle = self.angle - 90
+                else:
+                    self.angle = -self.angle
+                self.rect.top = collided_cell.rect.top - self.rect.height
+            # Низ
+            if intersection(bottomleft, bottomright, linestart, lineend):
+                print("bottom")
+                if movevector[0] > 0:
+                    self.angle = self.angle - 90
+                elif movevector[0] < 0:
+                    self.angle = self.angle + 90
+                else:
+                    self.angle = -self.angle
+                self.rect.bottom = collided_cell.rect.bottom + self.rect.height
+            # Лево
+            if intersection(topleft, bottomleft, linestart, lineend):
+                print("left")
+                if movevector[1] > 0:
+                    self.angle = self.angle - 90
+                elif movevector[1] < 0:
+                    self.angle = self.angle + 90
+                else:
+                    self.angle = -self.angle
+                self.rect.left = collided_cell.rect.left - self.rect.width
+            # Право
+            if intersection(topright, bottomright, linestart, lineend):
+                print("right")
+                if movevector[1] > 0:
+                    self.angle = self.angle + 90
+                elif movevector[1] < 0:
+                    self.angle = self.angle - 90
+                else:
+                    self.angle = -self.angle
+                self.rect.right = collided_cell.rect.right + self.rect.width
 
-        self.rect.y += self.dy
-        collided_cell = pg.sprite.spritecollideany(self, cells_colideable_b)
-
-        if collided_cell:
-            self.dy = -self.dy
-        self.rect.y -= self.dy
+        self.angle = self.angle % 360
+        self.image = pg.transform.rotate(self.original_image, self.angle + 90)
+        self.rect = self.image.get_rect(center=self.rect.center)
 
     def check_boundaries(self):
-        if self.rect.left < 0:
-            self.rect.left = 0
-        if self.rect.right > screenw:
-            self.rect.right = screenw
-        if self.rect.top < 0:
-            self.rect.top = 0
-        if self.rect.bottom > screenh:
-            self.rect.bottom = screenh
         if pg.sprite.spritecollideany(self, horizontal_borders):
-            self.angle = (-self.angle + 180) % 360
-            self.hp -= 1
+            self.angle = -self.angle + 180
         if pg.sprite.spritecollideany(self, vertical_borders):
             self.angle = -self.angle % 360
             self.hp -= 1
