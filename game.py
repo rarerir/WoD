@@ -2,6 +2,7 @@ import sys
 import pygame as pg
 from pygame.time import Clock
 from math import floor
+import math
 from pygame import Vector2
 import pickle
 import random
@@ -315,8 +316,9 @@ class Boolet(pg.sprite.Sprite):
         # Спавн
         self.add(boolets)
         vector = calculate_move_vect(-self.speed * dt, angle)
+        self.clockvector = Vector2(0, 1)
         x, y = vector + center
-        self.dx, self.dy = vector
+        self.dy, self.dx = vector
 
         # Картинка
         self.original_image = pg.image.load('sprites/bullet.png')
@@ -326,17 +328,21 @@ class Boolet(pg.sprite.Sprite):
         self.rect = self.image.get_rect(center=(x, y))
 
     def update(self, events, dt):
-        fps = self.speed * dt
-        self.xy = calculate_move_vect(-fps, -self.angle + 90)
-        self.collisions(self.xy)
-        self.move()
+        self.collisions()
+        self.rect.x += self.dx
+        self.rect.y += self.dy
+        self.angle = self.angle_hand()
+        self.image = pg.transform.rotate(self.original_image, self.angle - 90)  # Rotate the image
+        self.rect = self.image.get_rect(center=self.rect.center)
 
-    def move(self):
-        self.rect.center += self.xy
+    def angle_hand(self):
+        # Calculate the angle based on the dx and dy movement
+        angle = math.degrees(math.atan2(self.dx, self.dy))
+        return angle % 360
 
-    def collisions(self, movevector):
+    def collisions(self):
         self.check_boolets()
-        self.check_cells(movevector)
+        self.check_cells()
         self.check_boundaries()
 
     def check_boolets(self):
@@ -345,62 +351,39 @@ class Boolet(pg.sprite.Sprite):
             for boolet in bulcol:
                 boolet.explode()
 
-    def check_cells(self, movevector):
+    def check_cells(self):
         collided_cell = pg.sprite.spritecollideany(self, cells_colideable_b)
         if collided_cell:
             topleft, bottomleft, topright, bottomright = collided_cell.get_sides()
-            linestart = Vector2(floor(self.rect.center[0] - movevector[0]), floor(self.rect.center[1] - movevector[1]))
+            linestart = Vector2(floor(self.rect.center[0] - self.dx), floor(self.rect.center[1] - self.dy))
             lineend = Vector2(self.rect.center[0], self.rect.center[1])
             # Верх
             if intersection(topleft, topright, linestart, lineend):
                 print("up")
-                if movevector[0] > 0:
-                    self.dx
-                elif movevector[0] < 0:
-                    self.angle = self.angle - 90
-                else:
-                    self.angle = -self.angle
+                self.dy = -self.dy
                 self.rect.top = collided_cell.rect.top - self.rect.height
             # Низ
-            if intersection(bottomleft, bottomright, linestart, lineend):
+            elif intersection(bottomleft, bottomright, linestart, lineend):
                 print("bottom")
-                if movevector[0] > 0:
-                    self.angle = self.angle - 90
-                elif movevector[0] < 0:
-                    self.angle = self.angle + 90
-                else:
-                    self.angle = -self.angle
+                self.dy = -self.dy
                 self.rect.bottom = collided_cell.rect.bottom + self.rect.height
             # Лево
             if intersection(topleft, bottomleft, linestart, lineend):
                 print("left")
-                if movevector[1] > 0:
-                    self.angle = self.angle - 90
-                elif movevector[1] < 0:
-                    self.angle = self.angle + 90
-                else:
-                    self.angle = -self.angle
+                self.dx = -self.dx
                 self.rect.left = collided_cell.rect.left - self.rect.width
             # Право
-            if intersection(topright, bottomright, linestart, lineend):
+            elif intersection(topright, bottomright, linestart, lineend):
                 print("right")
-                if movevector[1] > 0:
-                    self.angle = self.angle + 90
-                elif movevector[1] < 0:
-                    self.angle = self.angle - 90
-                else:
-                    self.angle = -self.angle
+                self.dx = -self.dx
                 self.rect.right = collided_cell.rect.right + self.rect.width
-
-
-        self.angle = self.angle % 360
-        self.image = pg.transform.rotate(self.original_image, self.angle + 90)
-        self.rect = self.image.get_rect(center=self.rect.center)
 
     def check_boundaries(self):
         if pg.sprite.spritecollideany(self, horizontal_borders):
+            self.dy = -self.dy
             self.angle = -self.angle + 180
         if pg.sprite.spritecollideany(self, vertical_borders):
+            self.dx = -self.dx
             self.angle = -self.angle % 360
             self.hp -= 1
         if self.hp == 0:
