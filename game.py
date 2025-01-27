@@ -282,6 +282,9 @@ class Tank(pg.sprite.Sprite):
             self.rect.bottom = screenh
 
     def shoot(self, dt):
+        shoot_channel = pg.mixer.Channel(1)
+        shoot_sound = pg.mixer.Sound("sounds/выстрел.mp3")
+        shoot_channel.play(shoot_sound)
         self.currentammo -= 1
         spawn_position = (
             self.rect.centerx + calculate_move_vect(-self.size[1], -self.angle + 90)[0],

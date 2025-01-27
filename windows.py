@@ -6,27 +6,33 @@ import game
 
 
 def loadWin(size, screenw, screenh):
-    #1530 830\
-    stop = False
+    pg.mixer.music.load("sounds\\vpk-klinok-russkaya-rat-mp3.mp3")  # Укажите путь к вашему музыкальному файлу
+    pg.mixer.music.play(-1)
+    pg.mixer.music.set_volume(0.5)
+    pg.mixer.music.play(-1, fade_ms=1000)
     logoSurf = pg.image.load('images/logo.png')
     logoRect = logoSurf.get_rect(center = (screenw//2, screenh//2))
     surf = pg.Surface(size)
     surf.fill("black")
     surfRect = surf.get_rect(center = (screenw//2, screenh//2))
+    pg.mixer.music.fadeout(6000)
+
     for i in range(1, 510):
-        if stop:
-            break
         if i <= 255:
             surf.set_alpha(255 - i)
         else:
-            surf.set_alpha((255 - i)*-1)
+            surf.set_alpha((255 - i) * -1)
+
         screen.blit(logoSurf, logoRect)
         screen.blit(surf, surfRect)
         pg.display.flip()
-        for j in pg.event.get():
-            if j.type == pg.KEYDOWN:
-                stop = True
-                break
+        pg.time.delay(1)
+
+        for event in pg.event.get():
+            if event.type == pg.KEYDOWN or event.type == pg.QUIT:
+                pg.mixer.music.stop()
+                return
+    pg.time.delay(500)
 
 
 def load_image(name, colorkey=None):
@@ -41,6 +47,11 @@ def load_image(name, colorkey=None):
 
 
 def start_screen(size, screenw, screenh):
+    pg.mixer.music.load("sounds/фон.mp3")
+
+    pg.mixer.music.set_volume(0.1)
+    pg.mixer.music.play(-1, fade_ms=2000)
+
     screen.fill((0, 0, 0))
     settings = pg.transform.scale(load_image('настройки.png'), (200, 200))
 
@@ -186,6 +197,7 @@ if __name__ == "__main__":
     screenh = info.current_h
     size = (screenw, screenh)
     screen = pg.display.set_mode(size)
+    loadWin(size, screenw, screenh)
     # Границы
     Border(5, 5, screenw - 5, 5)
     Border(5, screenh - 5, screenw - 5, screenh - 5)
@@ -201,7 +213,7 @@ if __name__ == "__main__":
     dt = clock.tick(v) / 10
     gamec = game.Game()
 
-    loadWin(size, screenw, screenh)
+
     state = 1
     while state:
         if state == 1:
