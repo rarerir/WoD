@@ -4,9 +4,12 @@ import random
 import os
 import game
 
+def play_button_sound():
+    button_sound.set_volume(0.5)
+    button_sound.play()
 
 def loadWin(size, screenw, screenh):
-    pg.mixer.music.load("sounds\\vpk-klinok-russkaya-rat-mp3.mp3")  # Укажите путь к вашему музыкальному файлу
+    pg.mixer.music.load("sounds\\vpk-klinok-russkaya-rat-mp3.mp3")
     pg.mixer.music.play(-1)
     pg.mixer.music.set_volume(0.5)
     pg.mixer.music.play(-1, fade_ms=1000)
@@ -47,11 +50,6 @@ def load_image(name, colorkey=None):
 
 
 def start_screen(size, screenw, screenh):
-    pg.mixer.music.load("sounds/фон.mp3")
-
-    pg.mixer.music.set_volume(0.1)
-    pg.mixer.music.play(-1, fade_ms=2000)
-
     screen.fill((0, 0, 0))
     settings = pg.transform.scale(load_image('настройки.png'), (200, 200))
 
@@ -95,49 +93,83 @@ def start_screen(size, screenw, screenh):
                 x, y = pg.mouse.get_pos()
                 if ((text_x - 10 <= x) and (x <= text_x + text_w + 10)) and ((text_y - 10 <= y) and (
                         y <= text_y + text_h + 10)):
+                    play_button_sound()
                     for boolet in boolets:
                         boolet.kill()
                     return 3
                 if ((screenw - 200 <= x) and (x <= screenw)) and ((0 <= y) and (y <= 200)):
+                    play_button_sound()
                     for boolet in boolets:
                         boolet.kill()
                     return 2
                 if (exit_text_x - 10 <= x and x <= exit_text_x + exit_text.get_width() + 10) and \
                         (exit_text_y - 10 <= y and y <= exit_text_y + exit_text.get_height() + 10):
+                    play_button_sound()
                     return False
         pg.display.update()
         pg.display.flip()
 
 
 def settings_screen(size, screenw, screenh):
+    volume = 0.1
+    pg.mixer.music.set_volume(volume)
+
     screen.fill((0, 0, 0))
-    fon = pg.transform.scale(load_image('фон_1.gif'), (screenw, screenh))
-    screen.blit(fon, (0, 0))
 
     font = pg.font.Font(None, 100)
-    text = font.render("Настройки", True, (255, 255, 255))
-    text_rect = text.get_rect(center=(screenw // 2, screenh // 4))
-    screen.blit(text, text_rect)
+    text = font.render("Настройки", True, (100, 255, 100))
+    text_rect = text.get_rect(center=(screenw // 2, screenh // 4 - 100))
 
-    back_button = font.render("Назад", True, (255, 255, 255))
+    back_button = font.render("Назад", True, (100, 255, 100))
     back_x = screenw // 2 - back_button.get_width() // 2
     back_y = screenh // 2 - back_button.get_height() // 2 + 100
-    screen.blit(back_button, (back_x, back_y))
-    pg.draw.rect(screen, (0, 255, 0), (back_x - 10, back_y - 10,
-                                       back_button.get_width() + 20, back_button.get_height() + 20), 1)
+
+    Vol_button = font.render("Звук", True, (100, 255, 100))
+    vol_x = screenw // 2 - 350
+    vol_y = screenh // 2 - 80
+
+    slider_x = screenw // 2 - 150
+    slider_y = screenh // 2 - 50
+    slider_width = 300
+    slider_height = 20
+
+    for i in range(20):
+        Circle(all_sprites)
 
     while True:
+        dt = clock.tick(v)
+        screen.blit(text, text_rect)
+        screen.blit(back_button, (back_x, back_y))
+        screen.blit(Vol_button, (vol_x, vol_y))
+
+        pg.draw.rect(screen, (200, 200, 200), (slider_x, slider_y, slider_width, slider_height))
+        pg.draw.rect(screen, (0, 255, 0), (slider_x, slider_y, slider_width * volume, slider_height))
+
+        all_sprites.update(dt)
+        trail_surface.fill((0, 0, 0, 0))
+        for sprite in boolets:
+            sprite.draw(trail_surface)
+
+        screen.blit(trail_surface, (0, 0))
+
+
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return False
             if event.type == pg.MOUSEBUTTONDOWN:
                 x, y = pg.mouse.get_pos()
-                if (back_x - 10 <= x and x <= back_x + back_button.get_width() + 10) and (
-                        back_y - 10 <= y and y <= back_y + back_button.get_height() + 10):
+                # Назад
+                if (back_x - 10 <= x <= back_x + back_button.get_width() + 10) and \
+                        (back_y - 10 <= y <= back_y + back_button.get_height() + 10):
+                    play_button_sound()
                     return 1
-
+                # громкость
+                if (slider_x <= x <= slider_x + slider_width) and (slider_y <= y <= slider_y + slider_height):
+                    play_button_sound()
+                    volume = (x - slider_x) / slider_width
+                    pg.mixer.music.set_volume(volume)
+        pg.display.update()
         pg.display.flip()
-        clock.tick(v)
 
 
 class Circle(pg.sprite.Sprite):
@@ -187,6 +219,7 @@ class Border(pg.sprite.Sprite):
 if __name__ == "__main__":
     pg.init()
     # Группы спрайтов
+    button_sound = pg.mixer.Sound("sounds/кнопка2.mp3")
     all_sprites = pg.sprite.Group()
     horizontal_borders = pg.sprite.Group()
     vertical_borders = pg.sprite.Group()
@@ -212,7 +245,9 @@ if __name__ == "__main__":
     trail_surface.set_alpha(99)
     dt = clock.tick(v) / 10
     gamec = game.Game()
-
+    pg.mixer.music.load("sounds/фон.mp3")
+    pg.mixer.music.set_volume(0.1)
+    pg.mixer.music.play(-1, fade_ms=2000)
 
     state = 1
     while state:

@@ -48,31 +48,6 @@ def intersection(start1, end1, start2, end2):
     out_intersection = start1 + (dir1 * u)
     return out_intersection
 
-
-# экран загрузочный ну или просто отображение компании
-def loadWin(size, screenw, screenh):
-    stop = False
-    logoSurf = pg.image.load('images/logo.png')
-    logoRect = logoSurf.get_rect(center = (screenw//2, screenh//2))
-    surf = pg.Surface(size)
-    surf.fill("black")
-    surfRect = surf.get_rect(center = (screenw//2, screenh//2))
-    for i in range(1, 510):
-        if stop:
-            break
-        if i <= 255:
-            surf.set_alpha(255 - i)
-        else:
-            surf.set_alpha((255 - i)*-1)
-        screen.blit(logoSurf, logoRect)
-        screen.blit(surf, surfRect)
-        pg.display.flip()
-        for j in pg.event.get():
-            if j.type == pg.KEYDOWN:
-                stop = True
-                break
-
-
 def load_image(name, colorkey=None):
     fullname = os.path.join('sprites', name)
     if not os.path.isfile(fullname):
@@ -448,6 +423,19 @@ class Game:
         # Фпс
         v = 144
         clock = Clock()
+        self.paused = False
+
+    def draw_pause_screen(self):
+        for border in horizontal_borders:
+            border.draw()
+        for border in vertical_borders:
+            border.draw()
+        all_sprites.draw(screen)
+
+        font = pg.font.Font(None, 74)
+        text = font.render("Пауза", True, (200, 200, 200))
+        text_rect = text.get_rect(center=(screenw // 2, screenh // 2))
+        screen.blit(text, text_rect)
 
     def mainloop(self):
         running = True
@@ -461,14 +449,21 @@ class Game:
             for event in events:
                 if event.type == pg.QUIT:
                     return False
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_ESCAPE:
+                        self.paused = not self.paused
 
-            for border in horizontal_borders:
-                border.draw()
-            for border in vertical_borders:
-                border.draw()
-            # Обновление спрайтов
-            all_sprites.update((keys, events), dt)
-            all_sprites.draw(screen)
+            if self.paused:
+                self.draw_pause_screen()
+            else:
+                screen.fill((0, 0, 0))
+                for border in horizontal_borders:
+                    border.draw()
+                for border in vertical_borders:
+                    border.draw()
+                # Обновление спрайтов
+                all_sprites.update((keys, events), dt)
+                all_sprites.draw(screen)
 
             pg.display.flip()
 
