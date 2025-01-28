@@ -292,7 +292,7 @@ class Boolet(pg.sprite.Sprite):
     def __init__(self, speed, angle, center, dt):
         super().__init__(all_sprites, boolets)
         # Игровые
-        self.radius = 20
+        self.radius = 15
         self.speed = speed
         self.angle = angle
         self.hp = 3
@@ -309,7 +309,7 @@ class Boolet(pg.sprite.Sprite):
         self.image = self.original_image
         self.image = pg.transform.rotate(self.original_image, self.angle + 90)
         self.rect = self.image.get_rect(center=(x, y))
-        if self.check_cells():
+        if self.check_cells(kill=True):
             self.explode()
 
     def update(self, events, dt):
@@ -335,7 +335,7 @@ class Boolet(pg.sprite.Sprite):
             for boolet in bulcol:
                 boolet.explode()
 
-    def check_cells(self):
+    def check_cells(self, kill=False):
         collided_cell = pg.sprite.spritecollideany(self, cells_colideable_b)
         if collided_cell:
             topleft, bottomleft, topright, bottomright = collided_cell.get_sides()
@@ -365,6 +365,8 @@ class Boolet(pg.sprite.Sprite):
                 self.rect.right = collided_cell.rect.right + self.rect.width
                 if collided_cell.type == 3:
                     collided_cell.break_box()
+            if kill and collided_cell.type == 3:
+                collided_cell.break_box()
             return True
 
     def check_boundaries(self):
