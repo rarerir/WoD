@@ -244,41 +244,40 @@ class Tank(pg.sprite.Sprite):
             self.explode()
 
     def check_cells(self):
-        collided_cell = pg.sprite.spritecollide(self, cells_colideable_t, dokill=False)
-        if len(collided_cell) == 1:
-            collided_cell = collided_cell[0]
-            topleft, bottomleft, topright, bottomright, up, down, left, right = collided_cell.get_sides()
+        collided_cells = pg.sprite.spritecollide(self, cells_colideable_t, dokill=False)
+        if collided_cells:
+            for collided_cell in collided_cells:
+                topleft, bottomleft, topright, bottomright, up, down, left, right = collided_cell.get_sides()
+                linestart_l = Vector2(floor(self.rect.center[0] - self.dx + self.rect.left), floor(self.rect.center[1] - self.dy))
 
-            linestart_l = Vector2(floor(self.rect.center[0] - self.dx + self.rect.left), floor(self.rect.center[1] - self.dy))
+                linestart_r = Vector2(floor(self.rect.center[0] - self.dx - self.rect.right), floor(self.rect.center[1] - self.dy))
+                # Я гений
+                linestart_t = Vector2(floor(self.rect.center[0] - self.dx), floor(self.rect.center[1] - self.dy + self.rect.top))
 
-            linestart_r = Vector2(floor(self.rect.center[0] - self.dx - self.rect.right), floor(self.rect.center[1] - self.dy))
-            # Я гений
-            linestart_t = Vector2(floor(self.rect.center[0] - self.dx), floor(self.rect.center[1] - self.dy + self.rect.top))
+                linestart_b = Vector2(floor(self.rect.center[0] - self.dx), floor(self.rect.center[1] - self.dy - self.rect.bottom))
 
-            linestart_b = Vector2(floor(self.rect.center[0] - self.dx), floor(self.rect.center[1] - self.dy - self.rect.bottom))
-
-            lineend = Vector2(self.rect.center[0], self.rect.center[1])
-            # Верх
-            if up:
-                if intersection(topleft, topright, linestart_t, lineend):
-                    print("up")
-                    self.rect.bottom = collided_cell.rect.top
-            # Низ
-            if down:
-                if intersection(bottomleft, bottomright, linestart_b, lineend):
-                    print("bottom")
-                    self.rect.top = collided_cell.rect.bottom
-            # Лево
-            if left:
-                if intersection(topleft, bottomleft, linestart_l, lineend):
-                    print("left")
-                    self.rect.right = collided_cell.rect.left
-            # Право
-            if right:
-                if intersection(topright, bottomright, linestart_r, lineend):
-                    print("right")
-                    self.rect.left = collided_cell.rect.right
-        elif not collided_cell:
+                lineend = Vector2(self.rect.center[0], self.rect.center[1])
+                # Верх
+                if up:
+                    if intersection(topleft, topright, linestart_t, lineend):
+                        print("up")
+                        self.rect.bottom = collided_cell.rect.top
+                # Низ
+                if down:
+                    if intersection(bottomleft, bottomright, linestart_b, lineend):
+                        print("bottom")
+                        self.rect.top = collided_cell.rect.bottom
+                # Лево
+                if left:
+                    if intersection(topleft, bottomleft, linestart_l, lineend):
+                        print("left")
+                        self.rect.right = collided_cell.rect.left
+                # Право
+                if right:
+                    if intersection(topright, bottomright, linestart_r, lineend):
+                        print("right")
+                        self.rect.left = collided_cell.rect.right
+        elif not collided_cells:
             return True
         else:
             return False
