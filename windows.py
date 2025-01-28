@@ -9,33 +9,30 @@ def play_button_sound():
     button_sound.play()
 
 def loadWin(screenw, screenh):
-    pg.mixer.music.load("sounds\\vpk-klinok-russkaya-rat-mp3.mp3")
+    pg.mixer.music.load("sounds/vpk-klinok-russkaya-rat-mp3.mp3")
     pg.mixer.music.play(-1)
-    pg.mixer.music.set_volume(0.5)
-    pg.mixer.music.play(-1, fade_ms=1000)
     logoSurf = pg.image.load('images/logo.png')
-    logoRect = logoSurf.get_rect(center=(screenw//2, screenh//2))
+    logoRect = logoSurf.get_rect(center=(screenw // 2, screenh // 2))
     surf = pg.Surface(size)
     surf.fill("black")
-    surfRect = surf.get_rect(center=(screenw//2, screenh//2))
+    surfRect = surf.get_rect(center=(screenw // 2, screenh // 2))
     pg.mixer.music.fadeout(6000)
-    clock = pg.time.Clock()
+
     for i in range(1, 510):
-        dt = clock.tick(60)
         if i <= 255:
-            surf.set_alpha(255 - i * 5)
+            surf.set_alpha(255 - i)
         else:
-            surf.set_alpha((255 - i * 5) * -1)
+            surf.set_alpha((255 - i) * -1)
 
         screen.blit(logoSurf, logoRect)
         screen.blit(surf, surfRect)
         pg.display.flip()
+        pg.time.delay(1)
 
         for event in pg.event.get():
             if event.type == pg.KEYDOWN or event.type == pg.QUIT:
                 pg.mixer.music.stop()
                 return
-        clock.tick(dt)
     pg.time.delay(500)
 
 def load_image(name, colorkey=None):
