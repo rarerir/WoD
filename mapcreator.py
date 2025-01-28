@@ -96,10 +96,10 @@ if __name__ == "__main__":
     screenw = info.current_w
     screenh = info.current_h
     running = True
+    choice = input("1.Загрузить карту\n2.Делать с нуля")
     size = (screenw, screenh)
     screen = pg.display.set_mode(size)
     screen.fill((0, 0, 0))
-    choice = input("1.Загрузить карту\n2.Делать с нуля")
     if choice == '2':
         cells = tuple(map(int, input("Введите кол-во клеток по x и y соответственно (через пробел): \n").split()))
         x = cells[0]
@@ -108,8 +108,8 @@ if __name__ == "__main__":
         board.render()
     elif choice == '1':
         map = load(input("Введите название карты"))
-        xy = map.pop(-1)
-        Board(xy[0], xy[1], screen, map)
+        x, y = map.pop(-1)
+        Board(x, y, screen, board=map)
 
     print("Для того что-бы сохранить нажмите enter")
     while running:

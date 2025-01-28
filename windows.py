@@ -8,35 +8,35 @@ def play_button_sound():
     button_sound.set_volume(0.5)
     button_sound.play()
 
-def loadWin(size, screenw, screenh):
+def loadWin(screenw, screenh):
     pg.mixer.music.load("sounds\\vpk-klinok-russkaya-rat-mp3.mp3")
     pg.mixer.music.play(-1)
     pg.mixer.music.set_volume(0.5)
     pg.mixer.music.play(-1, fade_ms=1000)
     logoSurf = pg.image.load('images/logo.png')
-    logoRect = logoSurf.get_rect(center = (screenw//2, screenh//2))
+    logoRect = logoSurf.get_rect(center=(screenw//2, screenh//2))
     surf = pg.Surface(size)
     surf.fill("black")
-    surfRect = surf.get_rect(center = (screenw//2, screenh//2))
+    surfRect = surf.get_rect(center=(screenw//2, screenh//2))
     pg.mixer.music.fadeout(6000)
-
+    clock = pg.time.Clock()
     for i in range(1, 510):
+        dt = clock.tick(60)
         if i <= 255:
-            surf.set_alpha(255 - i)
+            surf.set_alpha(255 - i * 5)
         else:
-            surf.set_alpha((255 - i) * -1)
+            surf.set_alpha((255 - i * 5) * -1)
 
         screen.blit(logoSurf, logoRect)
         screen.blit(surf, surfRect)
         pg.display.flip()
-        pg.time.delay(1)
 
         for event in pg.event.get():
             if event.type == pg.KEYDOWN or event.type == pg.QUIT:
                 pg.mixer.music.stop()
                 return
+        clock.tick(dt)
     pg.time.delay(500)
-
 
 def load_image(name, colorkey=None):
     fullname = os.path.join('sprites', name)
@@ -49,7 +49,7 @@ def load_image(name, colorkey=None):
     return image
 
 
-def start_screen(size, screenw, screenh):
+def start_screen(screenw, screenh):
     screen.fill((0, 0, 0))
     settings = pg.transform.scale(load_image('настройки.png'), (200, 200))
 
@@ -110,7 +110,7 @@ def start_screen(size, screenw, screenh):
         pg.display.flip()
 
 
-def settings_screen(size, screenw, screenh):
+def settings_screen(screenw, screenh):
     volume = 0.1
     pg.mixer.music.set_volume(volume)
 
@@ -137,7 +137,7 @@ def settings_screen(size, screenw, screenh):
         Circle(all_sprites)
 
     while True:
-        dt = clock.tick(v)
+        dt = clock.tick(v) / 10
         screen.blit(text, text_rect)
         screen.blit(back_button, (back_x, back_y))
         screen.blit(Vol_button, (vol_x, vol_y))
@@ -230,7 +230,7 @@ if __name__ == "__main__":
     screenh = info.current_h
     size = (screenw, screenh)
     screen = pg.display.set_mode(size)
-    loadWin(size, screenw, screenh)
+    loadWin(screenw, screenh)
     # Границы
     Border(5, 5, screenw - 5, 5)
     Border(5, screenh - 5, screenw - 5, screenh - 5)
@@ -252,9 +252,9 @@ if __name__ == "__main__":
     state = 1
     while state:
         if state == 1:
-            state = start_screen(size, screenw, screenh)
+            state = start_screen(screenw, screenh)
         if state == 2:
-            state = settings_screen(size, screenw, screenh)
+            state = settings_screen(screenw, screenh)
         if state == 3:
             state = gamec.mainloop()
     pg.quit()

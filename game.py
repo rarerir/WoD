@@ -63,7 +63,7 @@ class Board:
     # Создание поля
     def __init__(self, mapn, cell_size=100):
         self.load(mapn)
-        self.types = [0, 1, 2]
+        self.types = [0, 1, 2, 3]
         self.cell_size = cell_size
         # Отцентровывание
         self.left = (screenw - self.x * cell_size) / 2
@@ -80,7 +80,7 @@ class Board:
         for i in range(int(self.y)):
             for j in range(int(self.x)):
                 eq = (j * self.cell_size + self.left, i * self.cell_size + self.top, self.cell_size)
-                self.board[i][j] = Cell(eq, self.board, (i, j), self.types[self.board[i][j]], cell_size=self.cell_size)
+                self.board[i][j] = Cell(eq, self.types[self.board[i][j]], cell_size=self.cell_size)
         # Спавн игроков
         self.spawn()
 
@@ -104,25 +104,33 @@ class Board:
 class Cell(pg.sprite.Sprite):
     images = ['sprites/земля.jpg', 'sprites/кирпичи.png', 'sprites/вода.jpg', 'sprites/коробка.jpg']
 
-    def __init__(self, eq, board, pos, type=1, cell_size=30):
+    def __init__(self, eq, type=0, cell_size=30):
         super().__init__(all_sprites, cells)
         self.type = type
+        self.cell_size = cell_size
         self.image = pg.image.load(f'{self.images[self.type]}')
         self.image = pg.transform.scale(self.image, (cell_size, cell_size))
         self.rect = self.image.get_rect(x=eq[0], y=eq[1])
         self.mask = pg.mask.from_surface(self.image)
-        # Надо доделать
-        self.board = board
-        self.pos = pos
-
         if self.type != 0:
             if self.type != 2:
                 cells_colideable_b.add(self)
             cells_colideable_t.add(self)
 
+    def reinit(self):
+        cells_colideable_t.remove(self)
+        cells_colideable_b.remove(self)
+        self.image = pg.image.load(f'{self.images[self.type]}')
+        self.image = pg.transform.scale(self.image, (self.cell_size, self.cell_size))
+
+
     def get_sides(self):
         return (Vector2(self.rect.topleft), Vector2(self.rect.bottomleft), Vector2(self.rect.topright),
                 Vector2(self.rect.bottomright))
+
+    def break_box(self):
+        self.type = 0
+        self.reinit()
 
 
 class Border(pg.sprite.Sprite):
@@ -213,6 +221,7 @@ class Tank(pg.sprite.Sprite):
 
     def check_cells(self):
         collided_cell = pg.sprite.spritecollideany(self, cells_colideable_t)
+
         if collided_cell:
             topleft, bottomleft, topright, bottomright = collided_cell.get_sides()
             linestart = Vector2(floor(self.rect.center[0] - self.dx), floor(self.rect.center[1] - self.dy))
@@ -248,12 +257,16 @@ class Tank(pg.sprite.Sprite):
         #         self.rect.top = collided_cell.rect.bottom
 
     def check_boundaries(self):
+        # Лево
         if self.rect.left < 0:
             self.rect.left = 0
+        # Право
         if self.rect.right > screenw:
             self.rect.right = screenw
+        # Верх
         if self.rect.top < 0:
             self.rect.top = 0
+        # Низ
         if self.rect.bottom > screenh:
             self.rect.bottom = screenh
 
@@ -314,7 +327,6 @@ class Boolet(pg.sprite.Sprite):
         self.rect = self.image.get_rect(center=self.rect.center)
 
     def angle_hand(self):
-        # Calculate the angle based on the dx and dy movement
         angle = math.degrees(math.atan2(self.dx, self.dy))
         return angle % 360
 
@@ -337,24 +349,28 @@ class Boolet(pg.sprite.Sprite):
             lineend = Vector2(self.rect.center[0], self.rect.center[1])
             # Верх
             if intersection(topleft, topright, linestart, lineend):
-                print("up")
                 self.dy = -self.dy
                 self.rect.top = collided_cell.rect.top - self.rect.height
+                if collided_cell.type == 3:
+                    collided_cell.break_box()
             # Низ
             elif intersection(bottomleft, bottomright, linestart, lineend):
-                print("bottom")
                 self.dy = -self.dy
                 self.rect.bottom = collided_cell.rect.bottom + self.rect.height
+                if collided_cell.type == 3:
+                    collided_cell.break_box()
             # Лево
             if intersection(topleft, bottomleft, linestart, lineend):
-                print("left")
                 self.dx = -self.dx
                 self.rect.left = collided_cell.rect.left - self.rect.width
+                if collided_cell.type == 3:
+                    collided_cell.break_box()
             # Право
             elif intersection(topright, bottomright, linestart, lineend):
-                print("right")
                 self.dx = -self.dx
                 self.rect.right = collided_cell.rect.right + self.rect.width
+                if collided_cell.type == 3:
+                    collided_cell.break_box()
 
     def check_boundaries(self):
         if pg.sprite.spritecollideany(self, horizontal_borders):
@@ -439,7 +455,7 @@ class Game:
 
     def mainloop(self):
         running = True
-        board = Board("newmap")
+        board = Board("rar")
         while running:
             dt = clock.tick(v)
             screen.fill((0, 0, 0))
