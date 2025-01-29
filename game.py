@@ -283,7 +283,29 @@ class Tank(pg.sprite.Sprite):
             self.rect.centery + calculate_move_vect(-self.size[1], -self.angle + 90)[1]
         )
         Boolet(self, self.speed * 1.3, self.angle, spawn_position, dt)
+
+    def bomb(self, dt):
+        shoot_channel = pg.mixer.Channel(1)
+        shoot_sound = pg.mixer.Sound("sounds/выстрел.mp3")
+        shoot_channel.play(shoot_sound)
+        spawn_position = (
+             self.rect.centerx + calculate_move_vect(-self.size[1], -self.angle + 90)[0],
+            self.rect.centery + calculate_move_vect(-self.size[1], -self.angle + 90)[1]
+        )
+        Boolet(self, self.speed * 1.3, self.angle, spawn_position, dt)
+
+    def rocket(self, dt):
+        shoot_channel = pg.mixer.Channel(1)
+        shoot_sound = pg.mixer.Sound("sounds/выстрел.mp3")
+        shoot_channel.play(shoot_sound)
+        spawn_position = (
+             self.rect.centerx + calculate_move_vect(-self.size[1], -self.angle + 90)[0],
+            self.rect.centery + calculate_move_vect(-self.size[1], -self.angle + 90)[1]
+        )
+        Boolet(self, self.speed * 1.3, self.angle, spawn_position, dt)
         print(boolets)
+
+
 
     def move(self):
         self.rect.x += self.dx
@@ -319,9 +341,6 @@ class Boolet(pg.sprite.Sprite):
         self.rect = self.image.get_rect(center=(x, y))
         if self.check_cells(kill=True):
             self.explode()
-        bulcol = pg.sprite.spritecollide(self, boolets, False)
-        if len(bulcol) > 1:
-            self.kill()
 
     def update(self, events, dt):
         self.collisions()
@@ -521,6 +540,7 @@ class Game:
         clock = Clock()
         self.paused = False
 
+
     def draw_pause_screen(self):
         for border in horizontal_borders:
             border.draw()
@@ -535,7 +555,6 @@ class Game:
 
     def mainloop(self):
         running = True
-        board = Board("rar")
         while running:
             dt = clock.tick(v)
             gscreen.fill((0, 0, 0))
