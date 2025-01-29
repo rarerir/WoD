@@ -94,11 +94,13 @@ class Board:
         self.board = mapstr
 
     def spawn(self):
+        global tanks
         spawn = (random.randrange(1, self.x + 1), random.randrange(1, self.y + 1))
-        self.tank1 = Tank((450, 450), 0.5, 3, 10, image="танчик2.png")
-        self.tank2 = Tank((550, 550), 0.5, 3, 10, key_forward=pg.K_w,
+        tank1 = Tank((450, 450), 0.5, 3, 10, image="танчик2.png")
+        tank2 = Tank((550, 550), 0.5, 3, 10, key_forward=pg.K_w,
                  key_backward=pg.K_s, key_left=pg.K_a, key_right=pg.K_d, key_shoot=pg.K_e, image='танчик1.png')
-
+        tanks.add(tank1)
+        tanks.add(tank2)
 
 class Cell(pg.sprite.Sprite):
     images = ['sprites/земля.jpg', 'sprites/кирпичи.png', 'sprites/вода.jpg', 'sprites/коробка.jpg']
@@ -132,17 +134,17 @@ class Cell(pg.sprite.Sprite):
         self.reinit()
 
 
-class Power-up(pg.sprite.Sprite):
-    images = ["", "", "", ""]
-    def __init__(self, spawn):
-        super().__init__(all_sprites)
-        self.type = random.choice((0, 1, 2, 3))
-        self.image = pg.image.load(f'{self.images[self.type]}')
-        self.pos = spawn
-
-    def collect(self):
-        self.kill()
-        return self.type
+# class Power-up(pg.sprite.Sprite):
+#     images = ["", "", "", ""]
+#     def __init__(self, spawn):
+#         super().__init__(all_sprites)
+#         self.type = random.choice((0, 1, 2, 3))
+#         self.image = pg.image.load(f'{self.images[self.type]}')
+#         self.pos = spawn
+#
+#     def collect(self):
+#         self.kill()
+#         return self.type
 
 
 class Border(pg.sprite.Sprite):
@@ -228,7 +230,6 @@ class Tank(pg.sprite.Sprite):
         for boolet in boolets:
             if pg.sprite.collide_mask(self, boolet):
                 self.hp -= 1
-                print(self.hp)
                 boolet.explode()
 
         if self.hp <= 0:
@@ -250,19 +251,15 @@ class Tank(pg.sprite.Sprite):
                 lineend = Vector2(self.rect.center[0], self.rect.center[1])
                 # Верх
                 if intersection(topleft, topright, linestart_t, lineend):
-                    print("up")
                     self.rect.bottom = collided_cell.rect.top
                 # Низ
                 if intersection(bottomleft, bottomright, linestart_b, lineend):
-                    print("bottom")
                     self.rect.top = collided_cell.rect.bottom
                 # Лево
                 if intersection(topleft, bottomleft, linestart_l, lineend):
-                    print("left")
                     self.rect.right = collided_cell.rect.left
                 # Право
                 if intersection(topright, bottomright, linestart_r, lineend):
-                    print("right")
                     self.rect.left = collided_cell.rect.right
 
     def check_boundaries(self):
@@ -416,8 +413,10 @@ class Explosion(pg.sprite.Sprite):
         self.power = power // duration
         self.rect = self.image.get_rect(center=center)
         self.thing = thing
+        self.center = center
         self.dispersion = 0
         self.duration = duration
+        self.c1 = 0
         self.thing.kill()
 
     def update(self, events, dt):
@@ -427,6 +426,65 @@ class Explosion(pg.sprite.Sprite):
             self.kill()
         self.image = pg.transform.scale(self.image, (self.dispersion, self.dispersion))
         self.rect = self.image.get_rect(center=self.rect.center)
+        while self.c1 < 30:
+            self.c1 += 1
+            shard = Shard(self.center[0], self.center[1], 'red')
+            all_sprites.add(shard)
+
+class Shard(pg.sprite.Sprite):
+    def __init__(self, x, y, isdeadly=False):
+        self.size = 7
+        super(Shard, self).__init__()
+        self.image = pg.Surface([self.size, self.size])
+        self.pt1 = random.randint(0, self.size)
+        self.pt2 = random.randint(0, self.size)
+        self.image.set_colorkey("black")
+        pg.draw.polygon(self.image, "red", ((0, 0), (self.size, self.pt1), (self.pt2, self.size)))
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+        self.velocity = 1
+        self.angle = math.radians(random.randint(0, 360))
+
+        self.dx = self.velocity * math.sin(self.angle)
+        self.dy = self.velocity * math.cos(self.angle)
+
+        self.isdeadly = isdeadly
+        self.hp = 100
+    def update(self, events, dt):
+        self.rect.x += self.dx * dt
+        self.rect.y += self.dy * dt
+        self.collisions()
+
+    def collisions(self):
+        self.check_cells()
+        self.check_boundaries()
+        if self.hp < 0:
+            self.kill()
+        if self.isdeadly:
+            self.check_tanks()
+
+    def check_cells(self):
+        collided_cell = pg.sprite.spritecollideany(self, cells_colideable_b)
+        if collided_cell:
+            self.dx = 0
+            self.dy = 0
+            self.hp -= 1
+    def check_boundaries(self):
+        if pg.sprite.spritecollideany(self, horizontal_borders):
+            self.dx = 0
+            self.dy = 0
+            self.hp -= 1
+        if pg.sprite.spritecollideany(self, vertical_borders):
+            self.dx = 0
+            self.dy = 0
+            self.hp -= 1
+    def check_tanks(self):
+        colided = pg.sprite.spritecollideany(self, tanks)
+        if colided:
+            colided.hp -= 1
+            self.kill()
 
 
 class Game:
