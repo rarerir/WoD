@@ -169,7 +169,7 @@ class Border(pg.sprite.Sprite):
             self.rect = pg.Rect(x1, y1, x2 - x1, 1)
 
     def draw(self):
-        pg.draw.line(screen, "white", (self.x1, self.y1), (self.x2, self.y2), 30)
+        pg.draw.line(gscreen, "white", (self.x1, self.y1), (self.x2, self.y2), 30)
 
 
 class Tank(pg.sprite.Sprite):
@@ -491,7 +491,7 @@ class Shard(pg.sprite.Sprite):
 
 class Game:
     def __init__(self):
-        global screenw, screenh, screen, all_sprites, vertical_borders, horizontal_borders, cells, cells_colideable_t
+        global screenw, screenh, gscreen, all_sprites, vertical_borders, horizontal_borders, cells, cells_colideable_t
         global cells_colideable_b, tanks, boolets, explosions, clock, v
 
         pg.init()
@@ -506,15 +506,15 @@ class Game:
 
         board = Board("rar")
         # Разрешение
-        size = (screenw, screenh)
-        screen = pg.display.set_mode(size)
+        self.size = (screenw, screenh)
+        gscreen = pg.display.set_mode(self.size)
 
         Border(5, 5, screenw - 5, 5)
         Border(5, screenh - 5, screenw - 5, screenh - 5)
         Border(5, 5, 5, screenh - 5)
         Border(screenw - 5, 5, screenw - 5, screenh - 5)
 
-        screen.fill((0, 0, 0))
+        gscreen.fill((0, 0, 0))
 
         # Фпс
         v = 144
@@ -526,19 +526,19 @@ class Game:
             border.draw()
         for border in vertical_borders:
             border.draw()
-        all_sprites.draw(screen)
+        all_sprites.draw(gscreen)
 
         font = pg.font.Font(None, 74)
         text = font.render("Пауза", True, (200, 200, 200))
         text_rect = text.get_rect(center=(screenw // 2, screenh // 2))
-        screen.blit(text, text_rect)
+        gscreen.blit(text, text_rect)
 
     def mainloop(self):
         running = True
         board = Board("rar")
         while running:
             dt = clock.tick(v)
-            screen.fill((0, 0, 0))
+            gscreen.fill((0, 0, 0))
             # Эвенты
             events = pg.event.get()
             keys = pg.key.get_pressed()
@@ -552,14 +552,14 @@ class Game:
             if self.paused:
                 self.draw_pause_screen()
             else:
-                screen.fill((0, 0, 0))
+                gscreen.fill((0, 0, 0))
                 for border in horizontal_borders:
                     border.draw()
                 for border in vertical_borders:
                     border.draw()
                 # Обновление спрайтов
                 all_sprites.update((keys, events), dt)
-                all_sprites.draw(screen)
+                all_sprites.draw(gscreen)
 
             pg.display.flip()
 

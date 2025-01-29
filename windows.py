@@ -173,8 +173,8 @@ class Circle(pg.sprite.Sprite):
     def __init__(self, *group):
         super().__init__(*group)
         self.color = (255, 0, 0)
-        self.dx = random.choice([-1, 1]) * dt
-        self.dy = random.choice([-1, 1]) * dt
+        self.dx = random.choice([-1, 1])
+        self.dy = random.choice([-1, 1])
         self.radius = 5
         self.add(boolets)
         self.x = random.randint(self.radius, screenw - self.radius)
@@ -221,27 +221,28 @@ if __name__ == "__main__":
     horizontal_borders = pg.sprite.Group()
     vertical_borders = pg.sprite.Group()
     boolets = pg.sprite.Group()
-    # Разрешение
-    info = pg.display.Info()
-    screenw = info.current_w
-    screenh = info.current_h
-    size = (screenw, screenh)
+
+    size = (1000, 1000)
+    screenw = size[0]
+    screenh = size[1]
     screen = pg.display.set_mode(size)
-    loadWin(screenw, screenh)
+
+    loadWin(1000, 1000)
+
     # Границы
-    Border(5, 5, screenw - 5, 5)
-    Border(5, screenh - 5, screenw - 5, screenh - 5)
-    Border(5, 5, 5, screenh - 5)
-    Border(screenw - 5, 5, screenw - 5, screenh - 5)
+    Border(5, 5, 995, 5)
+    Border(5, 995, 995, 995)
+    Border(5, 5, 5, 995)
+    Border(995, 5, 995, 995)
+
     # Фпс
     v = 144
     clock = pg.time.Clock()
 
-    trail_surface = pg.Surface((screenw, screenh))
+    trail_surface = pg.Surface(size)
     trail_surface.fill((0, 0, 0))
     trail_surface.set_alpha(99)
-    dt = clock.tick(v) / 10
-    gamec = game.Game()
+
     pg.mixer.music.load("sounds/фон.mp3")
     pg.mixer.music.set_volume(0.1)
     pg.mixer.music.play(-1, fade_ms=2000)
@@ -249,10 +250,13 @@ if __name__ == "__main__":
     state = 1
     while state:
         if state == 1:
-            state = start_screen(screenw, screenh)
+            state = start_screen(1000, 1000)
         if state == 2:
-            state = settings_screen(screenw, screenh)
+            state = settings_screen(1000, 1000)
         if state == 3:
+            gamec = game.Game()
             state = gamec.mainloop()
+
     pg.quit()
     sys.exit()
+
