@@ -180,6 +180,7 @@ class Tank(pg.sprite.Sprite):
         # Игровые
         self.maxammo = maxammo
         self.currentammo = maxammo
+        self.type = "bomb"
         self.hp = hp
         self.angle = 0
         self.angspeed = angspeed * 0.1
@@ -282,30 +283,7 @@ class Tank(pg.sprite.Sprite):
              self.rect.centerx + calculate_move_vect(-self.size[1], -self.angle + 90)[0],
             self.rect.centery + calculate_move_vect(-self.size[1], -self.angle + 90)[1]
         )
-        Boolet(self, self.speed * 1.3, self.angle, spawn_position, dt)
-
-    def bomb(self, dt):
-        shoot_channel = pg.mixer.Channel(1)
-        shoot_sound = pg.mixer.Sound("sounds/выстрел.mp3")
-        shoot_channel.play(shoot_sound)
-        spawn_position = (
-             self.rect.centerx + calculate_move_vect(-self.size[1], -self.angle + 90)[0],
-            self.rect.centery + calculate_move_vect(-self.size[1], -self.angle + 90)[1]
-        )
-        Boolet(self, self.speed * 1.3, self.angle, spawn_position, dt)
-
-    def rocket(self, dt):
-        shoot_channel = pg.mixer.Channel(1)
-        shoot_sound = pg.mixer.Sound("sounds/выстрел.mp3")
-        shoot_channel.play(shoot_sound)
-        spawn_position = (
-             self.rect.centerx + calculate_move_vect(-self.size[1], -self.angle + 90)[0],
-            self.rect.centery + calculate_move_vect(-self.size[1], -self.angle + 90)[1]
-        )
-        Boolet(self, self.speed * 1.3, self.angle, spawn_position, dt)
-        print(boolets)
-
-
+        Boolet(self, self.speed * 1.3, self.angle, spawn_position, dt, type=self.type)
 
     def move(self):
         self.rect.x += self.dx
@@ -319,13 +297,15 @@ class Tank(pg.sprite.Sprite):
 
 
 class Boolet(pg.sprite.Sprite):
-    def __init__(self, tank, speed, angle, center, dt):
+    types = {'shell': (3, 1.3, 15), 'bomb': (10, 1.1, 30), 'bullet': (1, 1.8, 5), 'rocket': (10, 1.5, 20)}
+    def __init__(self, tank, speed, angle, center, dt, type='shell'):
         super().__init__(all_sprites, boolets)
         # Игровые
-        self.radius = 15
-        self.speed = speed
+        self.radius = self.types.get(type)[2]
+        self.speed = speed * self.types.get(type)[1]
         self.angle = angle
-        self.hp = 3
+        self.hp = self.types.get(type)[0]
+        self.type = type
 
         # Спавн
         self.tank = tank
@@ -422,20 +402,21 @@ class Boolet(pg.sprite.Sprite):
 
     def explode(self):
         self.tank.currentammo += 1
-        Explosion(self, self.rect.center, 100)
+        Explosion(self, self.rect.center, 100, self.type)
 
 
 class Explosion(pg.sprite.Sprite):
     image = pg.image.load('sprites/explosion.jpg')
     image = pg.transform.scale(image, (10, 10))
 
-    def __init__(self, thing, center, power, duration=100):
+    def __init__(self, thing, center, power, type="normal", duration=100):
         super().__init__(all_sprites, explosions)
         self.power = power // duration
         self.rect = self.image.get_rect(center=center)
         self.thing = thing
         self.center = center
         self.dispersion = 0
+        self.type = type
         self.duration = duration
         self.c1 = 0
         self.thing.kill()
@@ -449,7 +430,10 @@ class Explosion(pg.sprite.Sprite):
         self.rect = self.image.get_rect(center=self.rect.center)
         while self.c1 < 30:
             self.c1 += 1
-            shard = Shard(self.center[0], self.center[1])
+            if self.type == "bomb":
+                shard = Shard(self.center[0], self.center[1], isdeadly=True)
+            else:
+                shard = Shard(self.center[0], self.center[1])
             all_sprites.add(shard)
 
 class Shard(pg.sprite.Sprite):
