@@ -95,8 +95,8 @@ class Board:
 
     def spawn(self):
         spawn = (random.randrange(1, self.x + 1), random.randrange(1, self.y + 1))
-        self.tank1 = Tank((450, 450), 0.5, 3, 3, image="танчик2.png")
-        self.tank2 = Tank((550, 550), 0.5, 3, 3, key_forward=pg.K_w,
+        self.tank1 = Tank((450, 450), 0.5, 3, 10, image="танчик2.png")
+        self.tank2 = Tank((550, 550), 0.5, 3, 10, key_forward=pg.K_w,
                  key_backward=pg.K_s, key_left=pg.K_a, key_right=pg.K_d, key_shoot=pg.K_e, image='танчик1.png')
 
 
@@ -130,6 +130,19 @@ class Cell(pg.sprite.Sprite):
     def break_box(self):
         self.type = 0
         self.reinit()
+
+
+class Power-up(pg.sprite.Sprite):
+    images = ["", "", "", ""]
+    def __init__(self, spawn):
+        super().__init__(all_sprites)
+        self.type = random.choice((0, 1, 2, 3))
+        self.image = pg.image.load(f'{self.images[self.type]}')
+        self.pos = spawn
+
+    def collect(self):
+        self.kill()
+        return self.type
 
 
 class Border(pg.sprite.Sprite):
@@ -339,28 +352,38 @@ class Boolet(pg.sprite.Sprite):
         collided_cell = pg.sprite.spritecollideany(self, cells_colideable_b)
         if collided_cell:
             topleft, bottomleft, topright, bottomright = collided_cell.get_sides()
-            linestart = Vector2(floor(self.rect.center[0] - self.dx), floor(self.rect.center[1] - self.dy))
+            linestart_l = Vector2(floor(self.rect.center[0] - self.dx + self.rect.left),
+                                  floor(self.rect.center[1] - self.dy))
+
+            linestart_r = Vector2(floor(self.rect.center[0] - self.dx - self.rect.right),
+                                  floor(self.rect.center[1] - self.dy))
+            linestart_t = Vector2(floor(self.rect.center[0] - self.dx),
+                                  floor(self.rect.center[1] - self.dy + self.rect.top))
+
+            linestart_b = Vector2(floor(self.rect.center[0] - self.dx),
+                                  floor(self.rect.center[1] - self.dy - self.rect.bottom))
+
             lineend = Vector2(self.rect.center[0], self.rect.center[1])
             # Верх
-            if intersection(topleft, topright, linestart, lineend):
+            if intersection(topleft, topright, linestart_t, lineend):
                 self.dy = -self.dy
                 self.rect.top = collided_cell.rect.top - self.rect.height
                 if collided_cell.type == 3:
                     collided_cell.break_box()
             # Низ
-            if intersection(bottomleft, bottomright, linestart, lineend):
+            if intersection(bottomleft, bottomright, linestart_b, lineend):
                 self.dy = -self.dy
                 self.rect.bottom = collided_cell.rect.bottom + self.rect.height
                 if collided_cell.type == 3:
                     collided_cell.break_box()
             # Лево
-            if intersection(topleft, bottomleft, linestart, lineend):
+            if intersection(topleft, bottomleft, linestart_l, lineend):
                 self.dx = -self.dx
                 self.rect.left = collided_cell.rect.left - self.rect.width
                 if collided_cell.type == 3:
                     collided_cell.break_box()
             # Право
-            if intersection(topright, bottomright, linestart, lineend):
+            if intersection(topright, bottomright, linestart_r, lineend):
                 self.dx = -self.dx
                 self.rect.right = collided_cell.rect.right + self.rect.width
                 if collided_cell.type == 3:
