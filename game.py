@@ -169,12 +169,11 @@ class Border(pg.sprite.Sprite):
 
 
 class Tank(pg.sprite.Sprite):
-    def __init__(self, spawn, speed, angspeed, hp, size=(50, 50), ammorecharge=1, maxammo=5, key_forward=pg.K_UP,
+    def __init__(self, spawn, speed, angspeed, hp, size=(50, 50), maxammo=5, key_forward=pg.K_UP,
                  key_backward=pg.K_DOWN, key_left=pg.K_LEFT, key_right=pg.K_RIGHT, key_shoot=pg.K_SPACE,
                  image='крутой так.png'):
         super().__init__(all_sprites, tanks)
         # Игровые
-        self.ammorecharge = ammorecharge
         self.maxammo = maxammo
         self.currentammo = maxammo
         self.hp = hp
@@ -212,9 +211,9 @@ class Tank(pg.sprite.Sprite):
 
         for event in keys[1]:
             if event.type == pg.KEYDOWN and event.dict.get("key") == self.key_shoot and self.currentammo > 0:
+                self.currentammo -= 1
+                print(self.currentammo)
                 self.shoot(dt)
-        if self.currentammo < self.maxammo:
-            self.currentammo += dt * self.ammorecharge
         self.collisions()
         self.move()
         self.image = pg.transform.rotate(self.original_image, self.angle)
@@ -280,12 +279,11 @@ class Tank(pg.sprite.Sprite):
         shoot_channel = pg.mixer.Channel(1)
         shoot_sound = pg.mixer.Sound("sounds/выстрел.mp3")
         shoot_channel.play(shoot_sound)
-        self.currentammo -= 1
         spawn_position = (
             self.rect.centerx + calculate_move_vect(-self.size[1], -self.angle + 90)[0],
             self.rect.centery + calculate_move_vect(-self.size[1], -self.angle + 90)[1]
         )
-        Boolet(self.speed * 1.3, self.angle, spawn_position, dt)
+        Boolet(self, self.speed * 1.3, self.angle, spawn_position, dt)
 
     def move(self):
         self.rect.x += self.dx
@@ -299,7 +297,7 @@ class Tank(pg.sprite.Sprite):
 
 
 class Boolet(pg.sprite.Sprite):
-    def __init__(self, speed, angle, center, dt):
+    def __init__(self, tank, speed, angle, center, dt):
         super().__init__(all_sprites, boolets)
         # Игровые
         self.radius = 15
@@ -308,6 +306,7 @@ class Boolet(pg.sprite.Sprite):
         self.hp = 3
 
         # Спавн
+        self.tank = tank
         self.add(boolets)
         vector = calculate_move_vect(-self.speed * dt, angle)
         x, y = vector + center
@@ -401,6 +400,8 @@ class Boolet(pg.sprite.Sprite):
             self.explode()
 
     def explode(self):
+        self.tank.currentammo += 1
+        print(self.tank.currentammo)
         Explosion(self, self.rect.center, 100)
 
 
@@ -428,7 +429,7 @@ class Explosion(pg.sprite.Sprite):
         self.rect = self.image.get_rect(center=self.rect.center)
         while self.c1 < 30:
             self.c1 += 1
-            shard = Shard(self.center[0], self.center[1], 'red')
+            shard = Shard(self.center[0], self.center[1])
             all_sprites.add(shard)
 
 class Shard(pg.sprite.Sprite):
