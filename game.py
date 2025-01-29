@@ -64,22 +64,19 @@ class Board:
         self.load(mapn)
         self.types = [0, 1, 2, 3]
         self.cell_size = cell_size
-        # Отцентровывание
-        self.left = (screenw - self.x * cell_size) / 2
-        self.top = (screenh - self.y * cell_size) / 2
-        if self.left < 0:
-            self.cell_size = floor(screenw / self.x)
-            self.left = (screenw - self.x * self.cell_size) / 2
-        if self.top < 0:
-            if self.cell_size > floor(screenh / self.y):
-                self.cell_size = floor(screenh / self.y)
-            # Отступы
-            self.top = (screenh - self.y * self.cell_size) / 2
-        self.left = (screenw - self.x * self.cell_size) / 2
+        self.board_width = self.x * self.cell_size
+        self.board_height = self.y * self.cell_size
+
+        global screenw, screenh
+        screenw = self.board_width
+        screenh = self.board_height
+
         for i in range(int(self.y)):
             for j in range(int(self.x)):
-                eq = (j * self.cell_size + self.left, i * self.cell_size + self.top, self.cell_size)
+                eq = (j * self.cell_size, i * self.cell_size)
                 self.board[i][j] = Cell(eq, self.types[self.board[i][j]], cell_size=self.cell_size)
+
+        self.create_borders()
         # Спавн игроков
         self.spawn()
 
@@ -93,14 +90,22 @@ class Board:
         self.x, self.y = mapstr.pop(-1)
         self.board = mapstr
 
+    def create_borders(self):
+        Border(0, 0, 0, self.cell_size * self.y)
+        Border(self.cell_size * self.x, 0, self.cell_size * self.x, self.cell_size * self.y)
+
+        Border(0, 0, self.cell_size * self.x, 0)
+        Border(0, self.cell_size * self.y, self.cell_size * self.x, self.cell_size * self.y)
+
     def spawn(self):
         global tanks
         spawn = (random.randrange(1, self.x + 1), random.randrange(1, self.y + 1))
         tank1 = Tank((450, 450), 0.5, 3, 10, image="танчик2.png")
         tank2 = Tank((550, 550), 0.5, 3, 10, key_forward=pg.K_w,
-                 key_backward=pg.K_s, key_left=pg.K_a, key_right=pg.K_d, key_shoot=pg.K_e, image='танчик1.png')
+                     key_backward=pg.K_s, key_left=pg.K_a, key_right=pg.K_d, key_shoot=pg.K_e, image='танчик1.png')
         tanks.add(tank1)
         tanks.add(tank2)
+
 
 class Cell(pg.sprite.Sprite):
     images = ['sprites/земля.jpg', 'sprites/кирпичи.png', 'sprites/вода.jpg', 'sprites/коробка.jpg']
@@ -112,7 +117,6 @@ class Cell(pg.sprite.Sprite):
         self.image = pg.image.load(f'{self.images[self.type]}')
         self.image = pg.transform.scale(self.image, (cell_size, cell_size))
         self.rect = self.image.get_rect(x=eq[0], y=eq[1])
-        self.up, self.down, self.left, self.right = True, True, True, True
         self.mask = pg.mask.from_surface(self.image)
         if self.type != 0:
             if self.type != 2:
@@ -212,7 +216,6 @@ class Tank(pg.sprite.Sprite):
         for event in keys[1]:
             if event.type == pg.KEYDOWN and event.dict.get("key") == self.key_shoot and self.currentammo > 0:
                 self.currentammo -= 1
-                print(self.currentammo)
                 self.shoot(dt)
         self.collisions()
         self.move()
@@ -262,16 +265,12 @@ class Tank(pg.sprite.Sprite):
                     self.rect.left = collided_cell.rect.right
 
     def check_boundaries(self):
-        # Лево
         if self.rect.left < 0:
             self.rect.left = 0
-        # Право
         if self.rect.right > screenw:
             self.rect.right = screenw
-        # Верх
         if self.rect.top < 0:
             self.rect.top = 0
-        # Низ
         if self.rect.bottom > screenh:
             self.rect.bottom = screenh
 
@@ -280,10 +279,11 @@ class Tank(pg.sprite.Sprite):
         shoot_sound = pg.mixer.Sound("sounds/выстрел.mp3")
         shoot_channel.play(shoot_sound)
         spawn_position = (
-            self.rect.centerx + calculate_move_vect(-self.size[1], -self.angle + 90)[0],
+             self.rect.centerx + calculate_move_vect(-self.size[1], -self.angle + 90)[0],
             self.rect.centery + calculate_move_vect(-self.size[1], -self.angle + 90)[1]
         )
         Boolet(self, self.speed * 1.3, self.angle, spawn_position, dt)
+        print(boolets)
 
     def move(self):
         self.rect.x += self.dx
@@ -307,7 +307,6 @@ class Boolet(pg.sprite.Sprite):
 
         # Спавн
         self.tank = tank
-        self.add(boolets)
         vector = calculate_move_vect(-self.speed * dt, angle)
         x, y = vector + center
         self.dy, self.dx = vector
@@ -320,6 +319,9 @@ class Boolet(pg.sprite.Sprite):
         self.rect = self.image.get_rect(center=(x, y))
         if self.check_cells(kill=True):
             self.explode()
+        bulcol = pg.sprite.spritecollide(self, boolets, False)
+        if len(bulcol) > 1:
+            self.kill()
 
     def update(self, events, dt):
         self.collisions()
@@ -401,7 +403,6 @@ class Boolet(pg.sprite.Sprite):
 
     def explode(self):
         self.tank.currentammo += 1
-        print(self.tank.currentammo)
         Explosion(self, self.rect.center, 100)
 
 
@@ -494,12 +495,7 @@ class Game:
         global cells_colideable_b, tanks, boolets, explosions, clock, v
 
         pg.init()
-        # Разрешение
-        info = pg.display.Info()
-        screenw = info.current_w
-        screenh = info.current_h
-        size = (screenw, screenh)
-        screen = pg.display.set_mode(size)
+
         # Группы спрайтов
         all_sprites = pg.sprite.Group()
         vertical_borders, horizontal_borders = pg.sprite.Group(), pg.sprite.Group()
@@ -507,7 +503,12 @@ class Game:
         tanks = pg.sprite.Group()
         boolets = pg.sprite.Group()
         explosions = pg.sprite.Group()
-        # Границы
+
+        board = Board("rar")
+        # Разрешение
+        size = (screenw, screenh)
+        screen = pg.display.set_mode(size)
+
         Border(5, 5, screenw - 5, 5)
         Border(5, screenh - 5, screenw - 5, screenh - 5)
         Border(5, 5, 5, screenh - 5)
