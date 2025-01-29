@@ -71,11 +71,20 @@ class Board:
         screenw = self.board_width
         screenh = self.board_height
 
+        self.spawnable = [
+            (y, x) for y in range(len(self.board))
+            for x in range(len(self.board[y]))
+            if self.board[y][x] == 0
+        ]
         for i in range(int(self.y)):
             for j in range(int(self.x)):
                 eq = (j * self.cell_size, i * self.cell_size)
                 self.board[i][j] = Cell(eq, self.types[self.board[i][j]], cell_size=self.cell_size)
 
+        for y in range(len(self.board)):
+            for x in range(len(self.board[y])):
+                if self.board[y][x] == 0:
+                    print(y, x)
         self.create_borders()
         # Спавн игроков
         self.spawn()
@@ -99,9 +108,20 @@ class Board:
 
     def spawn(self):
         global tanks
-        spawn = (random.randrange(1, self.x + 1), random.randrange(1, self.y + 1))
-        tank1 = Tank((450, 450), 0.5, 3, 10, image="танчик2.png")
-        tank2 = Tank((550, 550), 0.5, 3, 10, key_forward=pg.K_w,
+        spawn = random.choice(self.spawnable)
+        self.spawnable.remove(spawn)
+        spawn1 = random.choice(self.spawnable)
+        tank1_position = (
+            (spawn[1] * self.cell_size) + (self.cell_size / 2),
+            (spawn[0] * self.cell_size) + (self.cell_size / 2)
+        )
+
+        tank2_position = (
+            (spawn1[1] * self.cell_size) + (self.cell_size / 2),
+            (spawn1[0] * self.cell_size) + (self.cell_size / 2)
+        )
+        tank1 = Tank(tank1_position, 0.5, 3, 10, image="танчик2.png")
+        tank2 = Tank(tank2_position, 0.5, 3, 10, key_forward=pg.K_w,
                      key_backward=pg.K_s, key_left=pg.K_a, key_right=pg.K_d, key_shoot=pg.K_e, image='танчик1.png')
         tanks.add(tank1)
         tanks.add(tank2)
@@ -173,14 +193,15 @@ class Border(pg.sprite.Sprite):
 
 
 class Tank(pg.sprite.Sprite):
-    def __init__(self, spawn, speed, angspeed, hp, size=(50, 50), maxammo=5, key_forward=pg.K_UP,
+    types = {'shell': (5), 'bomb': (1), 'bullet': (100), 'rocket': (1), 'C4': (3)}
+    def __init__(self, spawn, speed, angspeed, hp, size=(50, 50), key_forward=pg.K_UP,
                  key_backward=pg.K_DOWN, key_left=pg.K_LEFT, key_right=pg.K_RIGHT, key_shoot=pg.K_SPACE,
                  image='крутой так.png'):
         super().__init__(all_sprites, tanks)
         # Игровые
-        self.maxammo = maxammo
-        self.currentammo = maxammo
-        self.type = "bomb"
+        self.type = "rocket"
+        self.maxammo = self.types.get(self.type)
+        self.currentammo = self.maxammo
         self.hp = hp
         self.angle = 0
         self.angspeed = angspeed * 0.1
@@ -201,23 +222,53 @@ class Tank(pg.sprite.Sprite):
         self.key_shoot = key_shoot
         self.dx = 0
         self.dy = 0
+        self.movement_enabled = True
+
+    def reinit(self):
+        # Игровые
+        # if type == "shell":
+        #     pass
+        # elif type == "bomb":
+        #     pass
+        # elif type == "bullet":
+        #     pass
+        # elif type == "rocket":
+        #     pass
+        # elif type == "C4":
+        #     pass
+        self.maxammo = self.types.get(self.type)
+        self.currentammo = self.maxammo
+        # Програмные
+        # self.original_image = pg.transform.scale(self.original_image, size)
+        # self.image = pg.transform.scale(self.original_image, size)
+        # self.rect = self.image.get_rect(center=spawn)
+        # self.mask = pg.mask.from_surface(self.image)
 
     def update(self, keys, dt):
-        fps = self.speed * dt
-        angfps = int(self.angspeed * dt)
-        if keys[0][self.key_forward]:
-            self.dx, self.dy = calculate_move_vect(-fps, -self.angle + 90)
-        elif keys[0][self.key_backward]:
-            self.dx, self.dy = calculate_move_vect(fps, -self.angle + 90)
-        if keys[0][self.key_left]:
-            self.angle += angfps
-        elif keys[0][self.key_right]:
-            self.angle -= angfps
+        if self.movement_enabled:
+            fps = self.speed * dt
+            angfps = int(self.angspeed * dt)
+            if keys[0][self.key_forward]:
+                self.dx, self.dy = calculate_move_vect(-fps, -self.angle + 90)
+            elif keys[0][self.key_backward]:
+                self.dx, self.dy = calculate_move_vect(fps, -self.angle + 90)
+            if keys[0][self.key_left]:
+                self.angle += angfps
+            elif keys[0][self.key_right]:
+                self.angle -= angfps
 
-        for event in keys[1]:
-            if event.type == pg.KEYDOWN and event.dict.get("key") == self.key_shoot and self.currentammo > 0:
+        if self.type == 'bullet':
+            if keys[0][self.key_shoot] and self.currentammo > 0:
                 self.currentammo -= 1
                 self.shoot(dt)
+        else:
+            for event in keys[1]:
+                if event.type == pg.KEYDOWN and event.dict.get("key") == self.key_shoot and self.currentammo > 0:
+                    self.currentammo -= 1
+                    self.shoot(dt)
+                    if self.type == 'rocket':
+                        self.movement_enabled = False
+
         self.collisions()
         self.move()
         self.image = pg.transform.rotate(self.original_image, self.angle)
@@ -283,7 +334,7 @@ class Tank(pg.sprite.Sprite):
              self.rect.centerx + calculate_move_vect(-self.size[1], -self.angle + 90)[0],
             self.rect.centery + calculate_move_vect(-self.size[1], -self.angle + 90)[1]
         )
-        Boolet(self, self.speed * 1.3, self.angle, spawn_position, dt, type=self.type)
+        Boolet(self, self.speed * 1.3, self.angle, spawn_position, dt, self.key_left, self.key_right, self.key_shoot, type=self.type)
 
     def move(self):
         self.rect.x += self.dx
@@ -297,8 +348,8 @@ class Tank(pg.sprite.Sprite):
 
 
 class Boolet(pg.sprite.Sprite):
-    types = {'shell': (3, 1.3, 15), 'bomb': (10, 1.1, 30), 'bullet': (1, 1.8, 5), 'rocket': (10, 1.5, 20)}
-    def __init__(self, tank, speed, angle, center, dt, type='shell'):
+    types = {'shell': (3, 1.3, 15), 'bomb': (100, 1.1, 30), 'bullet': (1, 1.8, 5), 'rocket': (10, 1, 40), 'C4': (1, 1, 10)}
+    def __init__(self, tank, speed, angle, center, dt, left, right, shoot, type='shell'):
         super().__init__(all_sprites, boolets)
         # Игровые
         self.radius = self.types.get(type)[2]
@@ -306,10 +357,13 @@ class Boolet(pg.sprite.Sprite):
         self.angle = angle
         self.hp = self.types.get(type)[0]
         self.type = type
+        self.left = left
+        self.right = right
+        self.shoot = shoot
 
         # Спавн
         self.tank = tank
-        vector = calculate_move_vect(-self.speed * dt, angle)
+        vector = calculate_move_vect(-self.speed * dt, -angle + 90)
         x, y = vector + center
         self.dy, self.dx = vector
 
@@ -317,7 +371,7 @@ class Boolet(pg.sprite.Sprite):
         self.original_image = pg.image.load('sprites/bullet.png')
         self.original_image = pg.transform.scale(self.original_image, (self.radius, self.radius))
         self.image = self.original_image
-        self.image = pg.transform.rotate(self.original_image, self.angle + 90)
+        self.image = pg.transform.rotate(self.original_image, self.angle)
         self.rect = self.image.get_rect(center=(x, y))
         if self.check_cells(kill=True):
             self.explode()
@@ -326,8 +380,21 @@ class Boolet(pg.sprite.Sprite):
         self.collisions()
         self.rect.x += self.dx
         self.rect.y += self.dy
-        self.angle = self.angle_hand()
-        self.image = pg.transform.rotate(self.original_image, self.angle - 90)  # Rotate the image
+        if self.type == 'rocket':
+            angfps = int(dt)
+            if events[0][self.left]:
+                self.angle -= angfps * 0.5
+            elif events[0][self.right]:
+                self.angle += angfps * 0.5
+            self.dx, self.dy = calculate_move_vect(-self.speed * dt, self.angle + 90)
+            self.image = pg.transform.rotate(self.original_image, -self.angle + 90)
+        else:
+            self.angle = self.angle_hand()
+            self.image = pg.transform.rotate(self.original_image, self.angle - 90)
+        if self.type == 'bomb':
+            for event in events[1]:
+                if event.type == pg.KEYDOWN and event.dict.get("key") == self.shoot:
+                    self.explode()
         self.rect = self.image.get_rect(center=self.rect.center)
 
     def angle_hand(self):
@@ -335,7 +402,8 @@ class Boolet(pg.sprite.Sprite):
         return angle % 360
 
     def collisions(self):
-        self.check_boolets()
+        if self.type != 'bullet':
+            self.check_boolets()
         self.check_cells()
         self.check_boundaries()
 
@@ -343,50 +411,54 @@ class Boolet(pg.sprite.Sprite):
         bulcol = pg.sprite.spritecollide(self, boolets, False)
         if len(bulcol) > 1:
             for boolet in bulcol:
-                boolet.explode()
+                boolet.hp -= 5
 
     def check_cells(self, kill=False):
         collided_cell = pg.sprite.spritecollideany(self, cells_colideable_b)
         if collided_cell:
-            topleft, bottomleft, topright, bottomright = collided_cell.get_sides()
-            linestart_l = Vector2(floor(self.rect.center[0] - self.dx + self.rect.left),
-                                  floor(self.rect.center[1] - self.dy))
+            if self.type != 'C4':
+                topleft, bottomleft, topright, bottomright = collided_cell.get_sides()
+                linestart_l = Vector2(floor(self.rect.center[0] - self.dx + self.rect.left),
+                                      floor(self.rect.center[1] - self.dy))
 
-            linestart_r = Vector2(floor(self.rect.center[0] - self.dx - self.rect.right),
-                                  floor(self.rect.center[1] - self.dy))
-            linestart_t = Vector2(floor(self.rect.center[0] - self.dx),
-                                  floor(self.rect.center[1] - self.dy + self.rect.top))
+                linestart_r = Vector2(floor(self.rect.center[0] - self.dx - self.rect.right),
+                                      floor(self.rect.center[1] - self.dy))
+                linestart_t = Vector2(floor(self.rect.center[0] - self.dx),
+                                      floor(self.rect.center[1] - self.dy + self.rect.top))
 
-            linestart_b = Vector2(floor(self.rect.center[0] - self.dx),
-                                  floor(self.rect.center[1] - self.dy - self.rect.bottom))
+                linestart_b = Vector2(floor(self.rect.center[0] - self.dx),
+                                      floor(self.rect.center[1] - self.dy - self.rect.bottom))
 
-            lineend = Vector2(self.rect.center[0], self.rect.center[1])
-            # Верх
-            if intersection(topleft, topright, linestart_t, lineend):
-                self.dy = -self.dy
-                self.rect.top = collided_cell.rect.top - self.rect.height
-                if collided_cell.type == 3:
+                lineend = Vector2(self.rect.center[0], self.rect.center[1])
+                # Верх
+                if intersection(topleft, topright, linestart_t, lineend):
+                    self.dy = -self.dy
+                    self.rect.top = collided_cell.rect.top - self.rect.height
+                    if collided_cell.type == 3:
+                        collided_cell.break_box()
+                # Низ
+                if intersection(bottomleft, bottomright, linestart_b, lineend):
+                    self.dy = -self.dy
+                    self.rect.bottom = collided_cell.rect.bottom + self.rect.height
+                    if collided_cell.type == 3:
+                        collided_cell.break_box()
+                # Лево
+                if intersection(topleft, bottomleft, linestart_l, lineend):
+                    self.dx = -self.dx
+                    self.rect.left = collided_cell.rect.left - self.rect.width
+                    if collided_cell.type == 3:
+                        collided_cell.break_box()
+                # Право
+                if intersection(topright, bottomright, linestart_r, lineend):
+                    self.dx = -self.dx
+                    self.rect.right = collided_cell.rect.right + self.rect.width
+                    if collided_cell.type == 3:
+                        collided_cell.break_box()
+                if kill and collided_cell.type == 3:
                     collided_cell.break_box()
-            # Низ
-            if intersection(bottomleft, bottomright, linestart_b, lineend):
-                self.dy = -self.dy
-                self.rect.bottom = collided_cell.rect.bottom + self.rect.height
-                if collided_cell.type == 3:
-                    collided_cell.break_box()
-            # Лево
-            if intersection(topleft, bottomleft, linestart_l, lineend):
-                self.dx = -self.dx
-                self.rect.left = collided_cell.rect.left - self.rect.width
-                if collided_cell.type == 3:
-                    collided_cell.break_box()
-            # Право
-            if intersection(topright, bottomright, linestart_r, lineend):
-                self.dx = -self.dx
-                self.rect.right = collided_cell.rect.right + self.rect.width
-                if collided_cell.type == 3:
-                    collided_cell.break_box()
-            if kill and collided_cell.type == 3:
+            else:
                 collided_cell.break_box()
+                self.explode()
             return True
 
     def check_boundaries(self):
@@ -397,12 +469,15 @@ class Boolet(pg.sprite.Sprite):
             self.dx = -self.dx
             self.angle = -self.angle % 360
             self.hp -= 1
-        if self.hp == 0:
+        if self.hp <= 0:
             self.explode()
 
     def explode(self):
         self.tank.currentammo += 1
-        Explosion(self, self.rect.center, 100, self.type)
+        if self.type != 'bullet':
+            Explosion(self, self.rect.center, 100, self.type)
+        else:
+            self.kill()
 
 
 class Explosion(pg.sprite.Sprite):
