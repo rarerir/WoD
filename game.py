@@ -363,7 +363,7 @@ class Boolet(pg.sprite.Sprite):
 
         # Спавн
         self.tank = tank
-        vector = calculate_move_vect(-self.speed * dt, -angle + 90)
+        vector = calculate_move_vect(-self.speed * dt, angle - 90)
         x, y = vector + center
         self.dy, self.dx = vector
 
@@ -383,11 +383,11 @@ class Boolet(pg.sprite.Sprite):
         if self.type == 'rocket':
             angfps = int(dt)
             if events[0][self.left]:
-                self.angle -= angfps * 0.5
-            elif events[0][self.right]:
                 self.angle += angfps * 0.5
-            self.dx, self.dy = calculate_move_vect(-self.speed * dt, self.angle + 90)
-            self.image = pg.transform.rotate(self.original_image, -self.angle + 90)
+            elif events[0][self.right]:
+                self.angle -= angfps * 0.5
+            self.dx, self.dy = calculate_move_vect(-self.speed * dt, -self.angle + 90)
+            self.image = pg.transform.rotate(self.original_image, self.angle + 90)
         else:
             self.angle = self.angle_hand()
             self.image = pg.transform.rotate(self.original_image, self.angle - 90)
