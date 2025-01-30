@@ -12,6 +12,7 @@ def loadWin(screenw, screenh):
     pg.mixer.music.load("sounds/vpk-klinok-russkaya-rat-mp3.mp3")
     pg.mixer.music.play(-1)
     logoSurf = pg.image.load('images/logo.png')
+    logoSurf = pg.transform.scale(logoSurf, (screenw + 100, screenh))
     logoRect = logoSurf.get_rect(center=(screenw // 2, screenh // 2))
     surf = pg.Surface(size)
     surf.fill("black")
