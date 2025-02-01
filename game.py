@@ -47,6 +47,7 @@ def intersection(start1, end1, start2, end2):
     out_intersection = start1 + (dir1 * u)
     return out_intersection
 
+
 def load_image(name, colorkey=None):
     fullname = os.path.join('sprites', name)
     if not os.path.isfile(fullname):
@@ -66,6 +67,7 @@ class Board:
         self.cell_size = cell_size
         self.board_width = self.x * self.cell_size
         self.board_height = self.y * self.cell_size
+        self.power_couter = 0
 
         global screenw, screenh
         screenw = self.board_width
@@ -87,7 +89,7 @@ class Board:
                     print(y, x)
         self.create_borders()
         # Спавн игроков
-        self.spawn()
+        self.spawn_tanks()
 
     def load(self, mapnm):
         try:
@@ -106,7 +108,7 @@ class Board:
         Border(0, 0, self.cell_size * self.x, 0)
         Border(0, self.cell_size * self.y, self.cell_size * self.x, self.cell_size * self.y)
 
-    def spawn(self):
+    def spawn_tanks(self):
         global tanks
         spawn = random.choice(self.spawnable)
         self.spawnable.remove(spawn)
@@ -125,6 +127,18 @@ class Board:
                      key_backward=pg.K_s, key_left=pg.K_a, key_right=pg.K_d, key_shoot=pg.K_e, image='танчик1.png')
         tanks.add(tank1)
         tanks.add(tank2)
+
+    def spawn_powerups(self, dt):
+            self.power_couter += 0.1 * dt
+            if self.power_couter >= 1000:
+                global power_ups
+                spawn = random.choice(self.spawnable)
+                powerup_position = (
+                    (spawn[1] * self.cell_size) + (self.cell_size / 2),
+                    (spawn[0] * self.cell_size) + (self.cell_size / 2)
+                )
+                Power_up(powerup_position, self.cell_size)
+                self.power_couter = 0
 
 
 class Cell(pg.sprite.Sprite):
@@ -158,17 +172,19 @@ class Cell(pg.sprite.Sprite):
         self.reinit()
 
 
-# class Power-up(pg.sprite.Sprite):
-#     images = ["", "", "", ""]
-#     def __init__(self, spawn):
-#         super().__init__(all_sprites)
-#         self.type = random.choice((0, 1, 2, 3))
-#         self.image = pg.image.load(f'{self.images[self.type]}')
-#         self.pos = spawn
-#
-#     def collect(self):
-#         self.kill()
-#         return self.type
+class Power_up(pg.sprite.Sprite):
+    abilities = {0:("rocket", "rocket.jpg"), 1:("bomb", "rocket.jpg"), 2:("bullet", "rocket.jpg"), 3:("C4", "rocket.jpg")}
+    def __init__(self, spawn, cell_size):
+        super().__init__(all_sprites, power_ups)
+        self.type = random.choice((0, 1, 2, 3))
+        self.image = pg.image.load(f'sprites\\{self.abilities.get(self.type)[1]}')
+        self.image = pg.transform.scale(self.image, (cell_size // 2, cell_size // 2))
+        self.type = self.abilities.get(self.type)[0]
+        self.rect = self.image.get_rect(x=spawn[0], y=spawn[1])
+        self.pos = spawn
+
+    def collect(self):
+        return self.type
 
 
 class Border(pg.sprite.Sprite):
@@ -199,7 +215,7 @@ class Tank(pg.sprite.Sprite):
                  image='крутой так.png'):
         super().__init__(all_sprites, tanks)
         # Игровые
-        self.type = "rocket"
+        self.type = "bullet"
         self.maxammo = self.types.get(self.type)
         self.currentammo = self.maxammo
         self.hp = hp
@@ -208,6 +224,10 @@ class Tank(pg.sprite.Sprite):
         self.speed = speed
         self.size = size
         self.original_image = pg.image.load(f'sprites/{image}')
+        if self.type == 'bullet':
+            self.shoot_sound = pg.mixer.Sound("sounds/minigun.mp3")
+        else:
+            self.shoot_sound = pg.mixer.Sound("sounds/выстрел.mp3")
         # Програмные
         self.original_image = pg.transform.scale(self.original_image, size)
         self.image = pg.transform.scale(self.original_image, size)
@@ -223,21 +243,18 @@ class Tank(pg.sprite.Sprite):
         self.dx = 0
         self.dy = 0
         self.movement_enabled = True
+        self.issound = False
 
-    def reinit(self):
-        # Игровые
-        # if type == "shell":
-        #     pass
-        # elif type == "bomb":
-        #     pass
-        # elif type == "bullet":
-        #     pass
-        # elif type == "rocket":
-        #     pass
-        # elif type == "C4":
-        #     pass
-        self.maxammo = self.types.get(self.type)
+    def reinit(self, type):
+        self.maxammo = self.types.get(type)
         self.currentammo = self.maxammo
+        self.type = type
+        if self.type == 'bullet':
+            self.shoot_sound = pg.mixer.Sound("sounds/minigun.mp3")
+        else:
+            self.shoot_sound.stop()
+            self.issound = False
+            self.shoot_sound = pg.mixer.Sound("sounds/выстрел.mp3")
         # Програмные
         # self.original_image = pg.transform.scale(self.original_image, size)
         # self.image = pg.transform.scale(self.original_image, size)
@@ -256,18 +273,36 @@ class Tank(pg.sprite.Sprite):
                 self.angle += angfps
             elif keys[0][self.key_right]:
                 self.angle -= angfps
-
         if self.type == 'bullet':
-            if keys[0][self.key_shoot] and self.currentammo > 0:
-                self.currentammo -= 1
-                self.shoot(dt)
-        else:
-            for event in keys[1]:
-                if event.type == pg.KEYDOWN and event.dict.get("key") == self.key_shoot and self.currentammo > 0:
+            if keys[0][self.key_shoot]:
+                if self.currentammo > 0:
                     self.currentammo -= 1
                     self.shoot(dt)
-                    if self.type == 'rocket':
-                        self.movement_enabled = False
+                    if not self.issound:
+                        self.shoot_sound.play(-1)
+                        self.issound = True
+                else:
+                    self.reinit('shell')
+                    if self.issound:
+                        self.shoot_sound.stop()
+                        self.issound = False
+            else:
+                if self.issound:
+                    self.shoot_sound.stop()
+                    self.issound = False
+        else:
+            for event in keys[1]:
+                if event.type == pg.KEYDOWN and event.dict.get("key") == self.key_shoot:
+                    if self.currentammo <= 0:
+                        if self.type != 'shell':
+                            if self.type == 'rocket':
+                                self.movement_enabled = True
+                            self.reinit('shell')
+                    else:
+                        self.currentammo -= 1
+                        self.shoot(dt)
+                        if self.type == 'rocket':
+                            self.movement_enabled = False
 
         self.collisions()
         self.move()
@@ -279,6 +314,7 @@ class Tank(pg.sprite.Sprite):
         self.check_boolets()
         self.check_boundaries()
         self.check_cells()
+        self.check_powerups()
 
     def check_boolets(self):
         for boolet in boolets:
@@ -288,6 +324,16 @@ class Tank(pg.sprite.Sprite):
 
         if self.hp <= 0:
             self.explode()
+
+    def check_boundaries(self):
+        if self.rect.left < 0:
+            self.rect.left = 0
+        if self.rect.right > screenw:
+            self.rect.right = screenw
+        if self.rect.top < 0:
+            self.rect.top = 0
+        if self.rect.bottom > screenh:
+            self.rect.bottom = screenh
 
     def check_cells(self):
         collided_cells = pg.sprite.spritecollide(self, cells_colideable_t, dokill=False)
@@ -316,20 +362,17 @@ class Tank(pg.sprite.Sprite):
                 if intersection(topright, bottomright, linestart_r, lineend):
                     self.rect.left = collided_cell.rect.right
 
-    def check_boundaries(self):
-        if self.rect.left < 0:
-            self.rect.left = 0
-        if self.rect.right > screenw:
-            self.rect.right = screenw
-        if self.rect.top < 0:
-            self.rect.top = 0
-        if self.rect.bottom > screenh:
-            self.rect.bottom = screenh
+    def check_powerups(self):
+        collided_powerup = pg.sprite.spritecollideany(self, power_ups)
+        if collided_powerup:
+            type = collided_powerup.collect()
+            collided_powerup.kill()
+            self.reinit(type)
 
     def shoot(self, dt):
         shoot_channel = pg.mixer.Channel(1)
-        shoot_sound = pg.mixer.Sound("sounds/выстрел.mp3")
-        shoot_channel.play(shoot_sound)
+        if self.type != "bullet":
+            shoot_channel.play(self.shoot_sound)
         spawn_position = (
              self.rect.centerx + calculate_move_vect(-self.size[1], -self.angle + 90)[0],
             self.rect.centery + calculate_move_vect(-self.size[1], -self.angle + 90)[1]
@@ -349,6 +392,7 @@ class Tank(pg.sprite.Sprite):
 
 class Boolet(pg.sprite.Sprite):
     types = {'shell': (3, 1.3, 15), 'bomb': (100, 1.1, 30), 'bullet': (1, 1.8, 5), 'rocket': (10, 1, 40), 'C4': (1, 1, 10)}
+    original_image = pg.image.load('sprites/bullet.png')
     def __init__(self, tank, speed, angle, center, dt, left, right, shoot, type='shell'):
         super().__init__(all_sprites, boolets)
         # Игровые
@@ -363,15 +407,14 @@ class Boolet(pg.sprite.Sprite):
 
         # Спавн
         self.tank = tank
-        vector = calculate_move_vect(-self.speed * dt, angle - 90)
+        vector = calculate_move_vect(-self.speed * dt, angle)
         x, y = vector + center
         self.dy, self.dx = vector
 
         # Картинка
-        self.original_image = pg.image.load('sprites/bullet.png')
         self.original_image = pg.transform.scale(self.original_image, (self.radius, self.radius))
         self.image = self.original_image
-        self.image = pg.transform.rotate(self.original_image, self.angle)
+        self.image = pg.transform.rotate(self.original_image, self.angle - 90)
         self.rect = self.image.get_rect(center=(x, y))
         if self.check_cells(kill=True):
             self.explode()
@@ -388,6 +431,9 @@ class Boolet(pg.sprite.Sprite):
                 self.angle -= angfps * 0.5
             self.dx, self.dy = calculate_move_vect(-self.speed * dt, -self.angle + 90)
             self.image = pg.transform.rotate(self.original_image, self.angle + 90)
+            for event in events[1]:
+                if event.type == pg.KEYDOWN and event.dict.get("key") == self.shoot:
+                    self.explode()
         else:
             self.angle = self.angle_hand()
             self.image = pg.transform.rotate(self.original_image, self.angle - 90)
@@ -395,6 +441,8 @@ class Boolet(pg.sprite.Sprite):
             for event in events[1]:
                 if event.type == pg.KEYDOWN and event.dict.get("key") == self.shoot:
                     self.explode()
+        if self.hp <= 0:
+            self.explode()
         self.rect = self.image.get_rect(center=self.rect.center)
 
     def angle_hand(self):
@@ -446,7 +494,7 @@ class Boolet(pg.sprite.Sprite):
                 if intersection(topleft, bottomleft, linestart_l, lineend):
                     self.dx = -self.dx
                     self.rect.left = collided_cell.rect.left - self.rect.width
-                    if collided_cell.type == 3:
+                    if collided_cell.type == 3: # Это не повтор, так надо или пули будут пролетать сквозь коробки
                         collided_cell.break_box()
                 # Право
                 if intersection(topright, bottomright, linestart_r, lineend):
@@ -469,13 +517,18 @@ class Boolet(pg.sprite.Sprite):
             self.dx = -self.dx
             self.angle = -self.angle % 360
             self.hp -= 1
-        if self.hp <= 0:
-            self.explode()
+
 
     def explode(self):
-        self.tank.currentammo += 1
+        if self.type == 'shell' and self.tank.type == 'shell':
+            self.tank.currentammo += 1
         if self.type != 'bullet':
-            Explosion(self, self.rect.center, 100, self.type)
+            explosion_channel = pg.mixer.Channel(2)
+            explosion_sound = pg.mixer.Sound("sounds/explosion.mp3")
+            explosion_channel.play(explosion_sound)
+            if self.type == 'rocket':
+                self.tank.movement_enabled = True
+            Explosion(self, self.rect.center, 100, self.type, angle=self.angle)
         else:
             self.kill()
 
@@ -484,10 +537,11 @@ class Explosion(pg.sprite.Sprite):
     image = pg.image.load('sprites/explosion.jpg')
     image = pg.transform.scale(image, (10, 10))
 
-    def __init__(self, thing, center, power, type="normal", duration=100):
+    def __init__(self, thing, center, power, type="normal", duration=100, angle=False):
         super().__init__(all_sprites, explosions)
         self.power = power // duration
         self.rect = self.image.get_rect(center=center)
+        self.angle = angle
         self.thing = thing
         self.center = center
         self.dispersion = 0
@@ -503,29 +557,39 @@ class Explosion(pg.sprite.Sprite):
             self.kill()
         self.image = pg.transform.scale(self.image, (self.dispersion, self.dispersion))
         self.rect = self.image.get_rect(center=self.rect.center)
-        while self.c1 < 30:
-            self.c1 += 1
-            if self.type == "bomb":
-                shard = Shard(self.center[0], self.center[1], isdeadly=True)
-            else:
-                shard = Shard(self.center[0], self.center[1])
-            all_sprites.add(shard)
+        if self.type == "bomb" or self.type == "tank" or self.type == 'rocket':
+            while self.c1 < 30:
+                self.c1 += 1
+                if self.type == "bomb":
+                    shard = Shard(self.center[0], self.center[1], isdeadly=True)
+                elif self.type == "rocket":
+                    shard = Shard(self.center[0], self.center[1], isdeadly=True, angle=self.angle)
+                else:
+                    shard = Shard(self.center[0], self.center[1], color='white')
+                all_sprites.add(shard)
 
 class Shard(pg.sprite.Sprite):
-    def __init__(self, x, y, isdeadly=False):
+    def __init__(self, x, y, isdeadly=False, color='red', angle=None):
         self.size = 7
         super(Shard, self).__init__()
         self.image = pg.Surface([self.size, self.size])
         self.pt1 = random.randint(0, self.size)
         self.pt2 = random.randint(0, self.size)
         self.image.set_colorkey("black")
-        pg.draw.polygon(self.image, "red", ((0, 0), (self.size, self.pt1), (self.pt2, self.size)))
+        pg.draw.polygon(self.image, color, ((0, 0), (self.size, self.pt1), (self.pt2, self.size)))
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
 
         self.velocity = 1
-        self.angle = math.radians(random.randint(0, 360))
+        if angle:
+            a, b = abs(int(angle + 200)), abs(int(angle + 160))
+            if a > b:
+                self.angle = math.radians(random.randint(b, a))
+            else:
+                self.angle = math.radians(random.randint(a, b))
+        else:
+            self.angle = math.radians(random.randint(0, 360))
 
         self.dx = self.velocity * math.sin(self.angle)
         self.dy = self.velocity * math.cos(self.angle)
@@ -569,8 +633,8 @@ class Shard(pg.sprite.Sprite):
 
 class Game:
     def __init__(self):
-        global screenw, screenh, gscreen, all_sprites, vertical_borders, horizontal_borders, cells, cells_colideable_t
-        global cells_colideable_b, tanks, boolets, explosions, clock, v
+        global screenw, screenh, gscreen, all_sprites, vertical_borders, horizontal_borders, power_ups, cells
+        global cells_colideable_t, cells_colideable_b, tanks, boolets, explosions, clock, v
 
         pg.init()
 
@@ -578,11 +642,12 @@ class Game:
         all_sprites = pg.sprite.Group()
         vertical_borders, horizontal_borders = pg.sprite.Group(), pg.sprite.Group()
         cells, cells_colideable_t, cells_colideable_b = pg.sprite.Group(), pg.sprite.Group(), pg.sprite.Group()
+        power_ups = pg.sprite.Group()
         tanks = pg.sprite.Group()
         boolets = pg.sprite.Group()
         explosions = pg.sprite.Group()
 
-        board = Board("rar")
+        self.board = Board("rar")
         # Разрешение
         self.size = (screenw, screenh)
         gscreen = pg.display.set_mode(self.size)
@@ -638,6 +703,7 @@ class Game:
                 # Обновление спрайтов
                 all_sprites.update((keys, events), dt)
                 all_sprites.draw(gscreen)
+                self.board.spawn_powerups(dt)
 
             pg.display.flip()
 
