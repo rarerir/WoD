@@ -733,6 +733,9 @@ class Game:
 
             if self.paused:
                 self.draw_pause_screen()
+            elif len(tanks) < 2:
+                self.draw_game_over_screen()
+                self.update_fade()
             else:
                 gscreen.fill((0, 0, 0))
                 for border in horizontal_borders:
@@ -743,13 +746,7 @@ class Game:
                 all_sprites.update((keys, events), dt)
                 all_sprites.draw(gscreen)
                 self.board.spawn_powerups(dt)
-            if len(tanks) < 2:
-                self.draw_game_over_screen()
-                self.update_fade()
-            else:
                 pg.display.flip()
-
-
 
 
 if __name__ == "__main__":
