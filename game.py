@@ -404,6 +404,7 @@ class Boolet(pg.sprite.Sprite):
         self.left = left
         self.right = right
         self.shoot = shoot
+        #h
 
         # Спавн
         self.tank = tank
