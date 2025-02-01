@@ -116,7 +116,8 @@ def settings_screen(screenw, screenh):
     pg.mixer.music.set_volume(volume)
 
     screen.fill((0, 0, 0))
-
+    for i in range(20):
+        Circle(all_sprites)
     font = pg.font.Font(None, 100)
     text = font.render("Настройки", True, (100, 255, 100))
     text_rect = text.get_rect(center=(screenw // 2, screenh // 4 - 100))
@@ -134,11 +135,10 @@ def settings_screen(screenw, screenh):
     slider_width = 300
     slider_height = 20
 
-    for i in range(20):
-        Circle(all_sprites)
+
 
     while True:
-        dt = clock.tick(v) / 10
+        dt = clock.tick(v)
         screen.blit(text, text_rect)
         screen.blit(back_button, (back_x, back_y))
         screen.blit(Vol_button, (vol_x, vol_y))

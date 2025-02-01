@@ -129,21 +129,20 @@ class Board:
         tanks.add(tank2)
 
     def spawn_powerups(self, dt):
-            self.power_couter += 0.1 * dt
-            if self.power_couter >= 1000:
-                global power_ups
-                spawn = random.choice(self.spawnable)
-                powerup_position = (
-                    (spawn[1] * self.cell_size) + (self.cell_size / 2),
-                    (spawn[0] * self.cell_size) + (self.cell_size / 2)
-                )
-                Power_up(powerup_position, self.cell_size)
-                self.power_couter = 0
+        self.power_couter += 0.1 * dt
+        if self.power_couter >= 1000:
+            global power_ups
+            spawn = random.choice(self.spawnable)
+            powerup_position = (
+                (spawn[1] * self.cell_size) + (self.cell_size / 2),
+                (spawn[0] * self.cell_size) + (self.cell_size / 2)
+            )
+            Power_up(powerup_position, self.cell_size)
+            self.power_couter = 0
 
 
 class Cell(pg.sprite.Sprite):
     images = ['sprites/земля.jpg', 'sprites/кирпичи.png', 'sprites/вода.jpg', 'sprites/коробка.jpg']
-
     def __init__(self, eq, type=0, cell_size=30):
         super().__init__(all_sprites, cells)
         self.type = type
@@ -173,7 +172,7 @@ class Cell(pg.sprite.Sprite):
 
 
 class Power_up(pg.sprite.Sprite):
-    abilities = {0:("rocket", "rocket.jpg"), 1:("bomb", "rocket.jpg"), 2:("bullet", "rocket.jpg"), 3:("C4", "rocket.jpg")}
+    abilities = {0:("rocket", "rocket.jpg"), 1:("bomb", "бомба.png"), 2:("bullet", "миниган.jpg"), 3:("C4", "c4.png")}
     def __init__(self, spawn, cell_size):
         super().__init__(all_sprites, power_ups)
         self.type = random.choice((0, 1, 2, 3))
@@ -215,7 +214,7 @@ class Tank(pg.sprite.Sprite):
                  image='крутой так.png'):
         super().__init__(all_sprites, tanks)
         # Игровые
-        self.type = "bullet"
+        self.type = "rocket"
         self.maxammo = self.types.get(self.type)
         self.currentammo = self.maxammo
         self.hp = hp
@@ -651,6 +650,10 @@ class Game:
         # Разрешение
         self.size = (screenw, screenh)
         gscreen = pg.display.set_mode(self.size)
+        self.fade_in = True
+        self.a = 255
+        self.fade_speed = 2
+        self.font = pg.font.Font(None, 74)
 
         Border(5, 5, screenw - 5, 5)
         Border(5, screenh - 5, screenw - 5, screenh - 5)
@@ -677,6 +680,40 @@ class Game:
         text_rect = text.get_rect(center=(screenw // 2, screenh // 2))
         gscreen.blit(text, text_rect)
 
+    def draw_game_over_screen(self):
+        gscreen.fill((0, 0, 0))
+        font = pg.font.Font(None, 100)
+        zfont = pg.font.Font(None, 40)
+        text = font.render("Игра Окончена", True, (0, 250, 0))
+        text_rect = text.get_rect(center=(screenw // 2, screenh - 650))
+        gscreen.blit(text, text_rect)
+
+        restart_text = zfont.render("Нажмите R для перезапуска", True, (200, 200, 200))
+        restart_rect = restart_text.get_rect(center=(screenw // 2, screenh - 300))
+
+        restart_text.set_alpha(self.a)
+        gscreen.blit(restart_text, restart_rect)
+
+        pg.display.flip()
+
+    def update_fade(self):
+        if self.fade_in:
+            self.a -= self.fade_speed
+            if self.a <= 0:
+                self.fade_in = False
+        else:
+            self.a += self.fade_speed
+            if self.a >= 255:
+                self.fade_in = True
+
+    def reset_game(self):
+        global all_sprites, tanks, boolets, explosions
+        all_sprites.empty()
+        tanks.empty()
+        boolets.empty()
+        explosions.empty()
+        self.board = Board("rar")
+
     def mainloop(self):
         running = True
         while running:
@@ -691,6 +728,8 @@ class Game:
                 if event.type == pg.KEYDOWN:
                     if event.key == pg.K_ESCAPE:
                         self.paused = not self.paused
+                    if event.key == pg.K_r and len(tanks) < 2:
+                        self.reset_game()
 
             if self.paused:
                 self.draw_pause_screen()
@@ -704,8 +743,13 @@ class Game:
                 all_sprites.update((keys, events), dt)
                 all_sprites.draw(gscreen)
                 self.board.spawn_powerups(dt)
+            if len(tanks) < 2:
+                self.draw_game_over_screen()
+                self.update_fade()
+            else:
+                pg.display.flip()
 
-            pg.display.flip()
+
 
 
 if __name__ == "__main__":
