@@ -129,21 +129,20 @@ class Board:
         tanks.add(tank2)
 
     def spawn_powerups(self, dt):
-            self.power_couter += 0.1 * dt
-            if self.power_couter >= 1000:
-                global power_ups
-                spawn = random.choice(self.spawnable)
-                powerup_position = (
-                    (spawn[1] * self.cell_size) + (self.cell_size / 2),
-                    (spawn[0] * self.cell_size) + (self.cell_size / 2)
-                )
-                Power_up(powerup_position, self.cell_size)
-                self.power_couter = 0
+        self.power_couter += 0.1 * dt
+        if self.power_couter >= 1000:
+            global power_ups
+            spawn = random.choice(self.spawnable)
+            powerup_position = (
+                (spawn[1] * self.cell_size) + (self.cell_size / 2),
+                (spawn[0] * self.cell_size) + (self.cell_size / 2)
+            )
+            Power_up(powerup_position, self.cell_size)
+            self.power_couter = 0
 
 
 class Cell(pg.sprite.Sprite):
     images = ['sprites/земля.jpg', 'sprites/кирпичи.png', 'sprites/вода.jpg', 'sprites/коробка.jpg']
-
     def __init__(self, eq, type=0, cell_size=30):
         super().__init__(all_sprites, cells)
         self.type = type
@@ -215,7 +214,7 @@ class Tank(pg.sprite.Sprite):
                  image='крутой так.png'):
         super().__init__(all_sprites, tanks)
         # Игровые
-        self.type = "bullet"
+        self.type = "rocket"
         self.maxammo = self.types.get(self.type)
         self.currentammo = self.maxammo
         self.hp = hp
@@ -704,7 +703,9 @@ class Game:
                 all_sprites.update((keys, events), dt)
                 all_sprites.draw(gscreen)
                 self.board.spawn_powerups(dt)
-
+            if len(tanks) < 2:
+                # Сюда экран окончания
+                pass
             pg.display.flip()
 
 
