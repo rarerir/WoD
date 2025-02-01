@@ -173,7 +173,7 @@ class Cell(pg.sprite.Sprite):
 
 
 class Power_up(pg.sprite.Sprite):
-    abilities = {0:("rocket", "rocket.jpg"), 1:("bomb", "бомба.png"), 2:("bullet", "миниган.jpg"), 3:("C4", "c4.jpg")}
+    abilities = {0:("rocket", "rocket.jpg"), 1:("bomb", "rocket.jpg"), 2:("bullet", "rocket.jpg"), 3:("C4", "rocket.jpg")}
     def __init__(self, spawn, cell_size):
         super().__init__(all_sprites, power_ups)
         self.type = random.choice((0, 1, 2, 3))
@@ -404,7 +404,6 @@ class Boolet(pg.sprite.Sprite):
         self.left = left
         self.right = right
         self.shoot = shoot
-        #h
 
         # Спавн
         self.tank = tank
@@ -533,54 +532,10 @@ class Boolet(pg.sprite.Sprite):
         else:
             self.kill()
 
-class AnimatedSprite(pg.sprite.Sprite):
-    def __init__(self, sheet, columns, rows, x, y):
-        super().__init__(all_sprites)
-        self.frames = []
-        self.cut_sheet(sheet, columns, rows)
-        self.cur_frame = 0
-        self.image = self.frames[self.cur_frame]
-        self.rect = self.image.get_rect(topleft=(x, y))
-
-    def cut_sheet(self, sheet, columns, rows):
-        self.rect = pg.Rect(0, 0, sheet.get_width() // columns,
-                                sheet.get_height() // rows)
-        for j in range(rows):
-            for i in range(columns):
-                frame_location = (self.rect.w * i, self.rect.h * j)
-                self.frames.append(sheet.subsurface(pg.Rect(
-                    frame_location, self.rect.size)))
-
-    def update(self):
-        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
-        self.image = self.frames[self.cur_frame]
-
-class AnimatedSprite(pg.sprite.Sprite):
-    def __init__(self, sheet, columns, rows, x, y):
-        super().__init__(all_sprites)
-        self.frames = []
-        self.cut_sheet(sheet, columns, rows)
-        self.cur_frame = 0
-        self.image = self.frames[self.cur_frame]
-        self.rect = self.image.get_rect(topleft=(x, y))
-
-    def cut_sheet(self, sheet, columns, rows):
-        self.rect = pg.Rect(0, 0, sheet.get_width() // columns,
-                                sheet.get_height() // rows)
-        for j in range(rows):
-            for i in range(columns):
-                frame_location = (self.rect.w * i, self.rect.h * j)
-                self.frames.append(sheet.subsurface(pg.Rect(
-                    frame_location, self.rect.size)))
-
-    def update(self):
-        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
-        self.image = self.frames[self.cur_frame]
-
 
 class Explosion(pg.sprite.Sprite):
     image = pg.image.load('sprites/explosion.jpg')
-    image = pg.transform.scale(image, (100, 100))
+    image = pg.transform.scale(image, (10, 10))
 
     def __init__(self, thing, center, power, type="normal", duration=100, angle=False):
         super().__init__(all_sprites, explosions)
@@ -598,12 +553,10 @@ class Explosion(pg.sprite.Sprite):
     def update(self, events, dt):
         self.dispersion += self.power
         self.duration -= 1
-        # sprite_sheet = pg.image.load(os.path.join('sprites', 'взрывы.png')).convert_alpha()
-        # animated_sprite = AnimatedSprite(sprite_sheet, columns=5, rows=5, x=screenw // 2, y=HEIGHT // 2)
         if self.duration == 0:
             self.kill()
         self.image = pg.transform.scale(self.image, (self.dispersion, self.dispersion))
-        # self.rect = self.animated_sprite.get_rect(center=self.rect.center)
+        self.rect = self.image.get_rect(center=self.rect.center)
         if self.type == "bomb" or self.type == "tank" or self.type == 'rocket':
             while self.c1 < 30:
                 self.c1 += 1
@@ -751,7 +704,6 @@ class Game:
                 all_sprites.update((keys, events), dt)
                 all_sprites.draw(gscreen)
                 self.board.spawn_powerups(dt)
-            clock.tick(v)
 
             pg.display.flip()
 
