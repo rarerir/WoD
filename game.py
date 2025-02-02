@@ -3,6 +3,7 @@ import pygame as pg
 from pygame.time import Clock
 from math import floor
 import math
+import windows
 from pygame import Vector2
 import pickle
 import random
@@ -61,8 +62,9 @@ def load_image(name, colorkey=None):
 
 class Board:
     # Создание поля
-    def __init__(self, mapn, cell_size=100):
-        self.load(mapn)
+    def __init__(self, mapn, map_data, cell_size=100):
+        self.x, self.y = map_data.pop(-1)
+        self.board = map_data
         self.types = [0, 1, 2, 3]
         self.cell_size = cell_size
         self.board_width = self.x * self.cell_size
@@ -90,16 +92,6 @@ class Board:
         self.create_borders()
         # Спавн игроков
         self.spawn_tanks()
-
-    def load(self, mapnm):
-        try:
-            with(open(f'maps/{mapnm}.wmap', "rb")) as f:
-                mapstr = pickle.load(f)
-        except FileNotFoundError:
-            print(f"Карта {mapnm} не найдена")
-            sys.exit()
-        self.x, self.y = mapstr.pop(-1)
-        self.board = mapstr
 
     def create_borders(self):
         Border(0, 0, 0, self.cell_size * self.y)
@@ -534,10 +526,33 @@ class Boolet(pg.sprite.Sprite):
         else:
             self.kill()
 
+class AnimatedSprite(pg.sprite.Sprite):
+    def __init__(self, sheet, columns, rows, x, y):
+        super().__init__(all_sprites)
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.image.get_rect(topleft=(x, y))
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pg.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pg.Rect(
+                    frame_location, self.rect.size)))
+
+    def update(self):
+        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+        self.image = self.frames[self.cur_frame]
 
 class Explosion(pg.sprite.Sprite):
     image = pg.image.load('sprites/explosion.jpg')
     image = pg.transform.scale(image, (10, 10))
+    # sprite_sheet = pg.image.load(os.path.join('sprites', 'взрывы.png')).convert_alpha()
+    # image = AnimatedSprite(sprite_sheet, columns=5, rows=5, x= // 2, y=HEIGHT // 2)
 
     def __init__(self, thing, center, power, type="normal", duration=100, angle=False):
         super().__init__(all_sprites, explosions)
@@ -651,7 +666,7 @@ class Game:
         boolets = pg.sprite.Group()
         explosions = pg.sprite.Group()
 
-        self.board = Board("rar")
+        self.board = self.load_random_board()
         # Разрешение
         self.size = (screenw, screenh)
         gscreen = pg.display.set_mode(self.size)
@@ -676,6 +691,27 @@ class Game:
         v = 144
         clock = Clock()
         self.paused = False
+        self.settings_button = pg.Rect(screenw // 2 - 100, screenh // 2 + 50, 200, 50)
+
+    def load_random_board(self):
+        map_files = [f for f in os.listdir('maps') if f.endswith('.wmap')]
+
+        if not map_files:
+            print("Нет доступных карт для загрузки.")
+            sys.exit()
+
+        random_map_file = random.choice(map_files)
+        print(f"Загрузка карты: {random_map_file}")
+
+        try:
+            with open(os.path.join('maps', random_map_file), "rb") as f:
+                mapstr = pickle.load(f)
+        except Exception as e:
+            print(f"Ошибка при загрузке карты: {e}")
+            sys.exit()
+
+        board = Board(random_map_file[:-5], mapstr)
+        return board
 
 
     def draw_pause_screen(self):
@@ -686,6 +722,29 @@ class Game:
         text_rect = text.get_rect(center=(screenw // 2, screenh // 2))
         gscreen.blit(text, text_rect)
 
+        pg.draw.rect(gscreen, (100, 100, 100), self.settings_button)
+        settings_text = font.render("Настройки", True, (255, 255, 255))
+        settings_text_rect = settings_text.get_rect(center=self.settings_button.center)
+        gscreen.blit(settings_text, settings_text_rect)
+
+    def handle_pause_events(self):
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+                exit()
+
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_ESCAPE:
+                    self.paused = False
+
+            if event.type == pg.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    if self.settings_button.collidepoint(event.pos):
+                        self.open_settings()
+
+    def open_settings(self):
+        windows.settings_screen(screenw, screenh)
+
     def draw_win_counter(self):
         font = pg.font.Font(None, 36)
         win_text = f"Игрок 1 : {self.wins_player1}   Игрок 2 : {self.wins_player2}"
@@ -694,6 +753,7 @@ class Game:
 
     def draw_game_over_screen(self):
         gscreen.fill((0, 0, 0))
+        
         font = pg.font.Font(None, 100)
         zfont = pg.font.Font(None, 40)
         if tanks.sprites()[0].id == 1:
@@ -710,7 +770,6 @@ class Game:
 
         restart_text.set_alpha(self.a)
         gscreen.blit(restart_text, restart_rect)
-
         pg.display.flip()
 
     def update_fade(self):
@@ -736,7 +795,7 @@ class Game:
         elif self.playerw2:
             self.wins_player2 += 1
             self.playerw2 = False
-        self.board = Board("rar")
+        self.board = self.load_random_board()
 
     def mainloop(self):
         running = True
@@ -757,6 +816,7 @@ class Game:
 
             if self.paused:
                 self.draw_pause_screen()
+                self.handle_pause_events()
             elif len(tanks) < 2:
                 self.draw_game_over_screen()
                 self.update_fade()
@@ -768,6 +828,36 @@ class Game:
                 self.board.spawn_powerups(dt)
                 self.draw_win_counter()
             pg.display.flip()
+
+class Circle(pg.sprite.Sprite):
+    def __init__(self, *group):
+        super().__init__(*group)
+        self.color = (255, 0, 0)
+        self.dx = random.choice([-1, 1])
+        self.dy = random.choice([-1, 1])
+        self.radius = 5
+        self.add(boolets)
+        self.x = random.randint(self.radius, screenw - self.radius)
+        self.y = random.randint(self.radius, screenh - self.radius)
+        self.rect = pg.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
+
+    def update(self, dt):
+        self.rect = self.rect.move(self.dx * dt, self.dy * dt)
+        if pg.sprite.spritecollideany(self, horizontal_borders):
+            self.dy = -self.dy
+        if pg.sprite.spritecollideany(self, vertical_borders):
+            self.dx = -self.dx
+        colided = pg.sprite.spritecollideany(self, boolets)
+        if colided != self:
+            colided.explode()
+            self.explode()
+
+    def draw(self, surface):
+        pg.draw.circle(surface, self.color, self.rect.center, self.radius)
+
+    def explode(self):
+        self.kill()
+        Circle(all_sprites)
 
 
 if __name__ == "__main__":
