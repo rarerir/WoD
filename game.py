@@ -122,9 +122,9 @@ class Board:
             (spawn1[1] * self.cell_size) + (self.cell_size / 2),
             (spawn1[0] * self.cell_size) + (self.cell_size / 2)
         )
-        tank1 = Tank(tank1_position, 0.5, 3, 10, image="танчик2.png")
-        tank2 = Tank(tank2_position, 0.5, 3, 10, key_forward=pg.K_w,
-                     key_backward=pg.K_s, key_left=pg.K_a, key_right=pg.K_d, key_shoot=pg.K_e, image='танчик1.png')
+        tank1 = Tank(tank1_position, 0.5, 3, 2, image="танчик2.png", id=1)
+        tank2 = Tank(tank2_position, 0.5, 3, 2, key_forward=pg.K_w,
+                     key_backward=pg.K_s, key_left=pg.K_a, key_right=pg.K_d, key_shoot=pg.K_e, image='танчик1.png', id=2)
         tanks.add(tank1)
         tanks.add(tank2)
 
@@ -211,13 +211,14 @@ class Tank(pg.sprite.Sprite):
     types = {'shell': (5), 'bomb': (1), 'bullet': (100), 'rocket': (1), 'C4': (3)}
     def __init__(self, spawn, speed, angspeed, hp, size=(50, 50), key_forward=pg.K_UP,
                  key_backward=pg.K_DOWN, key_left=pg.K_LEFT, key_right=pg.K_RIGHT, key_shoot=pg.K_SPACE,
-                 image='крутой так.png'):
+                 image='крутой так.png', id=1):
         super().__init__(all_sprites, tanks)
         # Игровые
-        self.type = "rocket"
+        self.type = "C4"
         self.maxammo = self.types.get(self.type)
         self.currentammo = self.maxammo
         self.hp = hp
+        self.id = id
         self.angle = 0
         self.angspeed = angspeed * 0.1
         self.speed = speed
@@ -512,6 +513,7 @@ class Boolet(pg.sprite.Sprite):
         if pg.sprite.spritecollideany(self, horizontal_borders):
             self.dy = -self.dy
             self.angle = -self.angle + 180
+            self.hp -= 1
         if pg.sprite.spritecollideany(self, vertical_borders):
             self.dx = -self.dx
             self.angle = -self.angle % 360
@@ -527,6 +529,7 @@ class Boolet(pg.sprite.Sprite):
             explosion_channel.play(explosion_sound)
             if self.type == 'rocket':
                 self.tank.movement_enabled = True
+            Explosion(self, self.rect.center, 100, self.type, angle=self.angle)
             Explosion(self, self.rect.center, 100, self.type, angle=self.angle)
         else:
             self.kill()
@@ -547,6 +550,8 @@ class Explosion(pg.sprite.Sprite):
         self.type = type
         self.duration = duration
         self.c1 = 0
+        if self.type == 'bomb':
+            self.c1 = -40
         self.thing.kill()
 
     def update(self, events, dt):
@@ -655,6 +660,11 @@ class Game:
         self.fade_speed = 2
         self.font = pg.font.Font(None, 74)
 
+        self.wins_player1 = 0
+        self.wins_player2 = 0
+        self.playerw1 = False
+        self.playerw2 = False
+
         Border(5, 5, screenw - 5, 5)
         Border(5, screenh - 5, screenw - 5, screenh - 5)
         Border(5, 5, 5, screenh - 5)
@@ -669,10 +679,6 @@ class Game:
 
 
     def draw_pause_screen(self):
-        for border in horizontal_borders:
-            border.draw()
-        for border in vertical_borders:
-            border.draw()
         all_sprites.draw(gscreen)
 
         font = pg.font.Font(None, 74)
@@ -680,11 +686,22 @@ class Game:
         text_rect = text.get_rect(center=(screenw // 2, screenh // 2))
         gscreen.blit(text, text_rect)
 
+    def draw_win_counter(self):
+        font = pg.font.Font(None, 36)
+        win_text = f"Игрок 1 : {self.wins_player1}   Игрок 2 : {self.wins_player2}"
+        text = font.render(win_text, True, (255, 100, 100))
+        gscreen.blit(text, (10, 10))
+
     def draw_game_over_screen(self):
         gscreen.fill((0, 0, 0))
         font = pg.font.Font(None, 100)
         zfont = pg.font.Font(None, 40)
-        text = font.render("Игра Окончена", True, (0, 250, 0))
+        if tanks.sprites()[0].id == 1:
+            text = font.render("Игрок 1 победил", True, (0, 250, 0))
+            self.playerw1 = True
+        if tanks.sprites()[0].id == 2:
+            text = font.render("Игрок 2 победил", True, (0, 250, 0))
+            self.playerw2 = True
         text_rect = text.get_rect(center=(screenw // 2, screenh - 650))
         gscreen.blit(text, text_rect)
 
@@ -712,6 +729,13 @@ class Game:
         tanks.empty()
         boolets.empty()
         explosions.empty()
+        pg.mixer.stop()
+        if self.playerw1:
+            self.wins_player1 += 1
+            self.playerw1 = False
+        elif self.playerw2:
+            self.wins_player2 += 1
+            self.playerw2 = False
         self.board = Board("rar")
 
     def mainloop(self):
@@ -738,15 +762,12 @@ class Game:
                 self.update_fade()
             else:
                 gscreen.fill((0, 0, 0))
-                for border in horizontal_borders:
-                    border.draw()
-                for border in vertical_borders:
-                    border.draw()
                 # Обновление спрайтов
                 all_sprites.update((keys, events), dt)
                 all_sprites.draw(gscreen)
                 self.board.spawn_powerups(dt)
-                pg.display.flip()
+                self.draw_win_counter()
+            pg.display.flip()
 
 
 if __name__ == "__main__":
