@@ -225,15 +225,14 @@ class Tank(pg.sprite.Sprite):
         self.type = type
         if self.type == 'bullet':
             self.shoot_sound = pg.mixer.Sound("sounds/minigun.mp3")
+            self.shoot_sound.set_volume(1)
+        if self.type == 'rocket':
+            self.shoot_sound = pg.mixer.Sound("sounds/launch.mp3")
+            self.shoot_sound.set_volume(0.1)
         else:
             self.shoot_sound.stop()
             self.issound = False
             self.shoot_sound = pg.mixer.Sound("sounds/выстрел.mp3")
-        # Програмные
-        # self.original_image = pg.transform.scale(self.original_image, size)
-        # self.image = pg.transform.scale(self.original_image, size)
-        # self.rect = self.image.get_rect(center=spawn)
-        # self.mask = pg.mask.from_surface(self.image)
 
     def update(self, keys, dt):
         if self.movement_enabled:
@@ -502,14 +501,12 @@ class Boolet(pg.sprite.Sprite):
             explosion_channel.play(explosion_sound)
             if self.type == 'rocket':
                 self.tank.movement_enabled = True
-            Explosion(self, self.rect.center, 100, self.type, angle=self.angle)
+            Explosion(self, self.rect.center, type=self.type, angle=self.angle)
         else:
             self.kill()
 
 
 class Explosion(pg.sprite.Sprite):
-    image = pg.image.load('sprites/explosion.jpg')
-    image = pg.transform.scale(image, (10, 10))
 
     def __init__(self, thing, center, columns=5, rows=5, type="normal", duration=200, angle=False):
         super().__init__(all_sprites, explosions)
@@ -624,13 +621,13 @@ class Shard(pg.sprite.Sprite):
 
 class Game:
     def __init__(self, size):
-        global cells_colideable_t, cells_colideable_b, tanks, boolets, explosions, all_sprites, power_ups, cells
+        global cells_colideable_t, cells_colideable_b, tanks, boolets, explosions, all_sprites, power_ups, cells, screenw, screenh
         pg.init()
         # Группы спрайтов
         pg.mixer.stop()
         pg.mixer.music.load("sounds/1.mp3")
         pg.mixer.music.set_volume(0.1)
-        pg.mixer.music.play(-1, fade_ms=2000)
+        pg.mixer.music.play(-1)
         all_sprites = pg.sprite.Group()
         cells, cells_colideable_t, cells_colideable_b = pg.sprite.Group(), pg.sprite.Group(), pg.sprite.Group()
         power_ups = pg.sprite.Group()
@@ -639,6 +636,8 @@ class Game:
         explosions = pg.sprite.Group()
         # Разрешение
         self.size = size
+        screenw = size[0]
+        screenh = size[1]
         self.gscreen = pg.display.set_mode(self.size)
         self.gscreen.fill((0, 0, 0))
         # Экран конца
