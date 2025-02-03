@@ -3,6 +3,7 @@ import pygame as pg
 from pygame.time import Clock
 from math import floor
 import math
+import windows
 from pygame import Vector2
 import pickle
 import random
@@ -502,7 +503,6 @@ class Boolet(pg.sprite.Sprite):
             if self.type == 'rocket':
                 self.tank.movement_enabled = True
             Explosion(self, self.rect.center, 100, self.type, angle=self.angle)
-            Explosion(self, self.rect.center, 100, self.type, angle=self.angle)
         else:
             self.kill()
 
@@ -511,27 +511,36 @@ class Explosion(pg.sprite.Sprite):
     image = pg.image.load('sprites/explosion.jpg')
     image = pg.transform.scale(image, (10, 10))
 
-    def __init__(self, thing, center, power, type="normal", duration=100, angle=False):
+    def __init__(self, thing, center, columns=5, rows=5, type="normal", duration=200, angle=False):
         super().__init__(all_sprites, explosions)
-        self.power = power // duration
-        self.rect = self.image.get_rect(center=center)
         self.angle = angle
         self.thing = thing
         self.center = center
-        self.dispersion = 0
         self.type = type
         self.duration = duration
         self.c1 = 0
         if self.type == 'bomb':
             self.c1 = -40
+        self.frames = []
+        sheet = pg.image.load(os.path.join('sprites', 'взрывы.png')).convert_alpha()
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.image.get_rect(center=center)
         self.thing.kill()
 
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pg.Rect(0, 0, sheet.get_width() // columns,
+                            sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pg.Rect(
+                    frame_location, self.rect.size)))
+
     def update(self, events, dt):
-        self.dispersion += self.power
-        self.duration -= 1
-        if self.duration == 0:
-            self.kill()
-        self.image = pg.transform.scale(self.image, (self.dispersion, self.dispersion))
+        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+        self.image = self.frames[self.cur_frame]
         self.rect = self.image.get_rect(center=self.rect.center)
         if self.type == "bomb" or self.type == "tank" or self.type == 'rocket':
             while self.c1 < 30:
@@ -543,6 +552,9 @@ class Explosion(pg.sprite.Sprite):
                 else:
                     shard = Shard(self.center[0], self.center[1], color='white')
                 all_sprites.add(shard)
+        self.duration -= 1 * dt
+        if self.duration <= 0:
+            self.kill()
 
 class Shard(pg.sprite.Sprite):
     def __init__(self, x, y, isdeadly=False, color='red', angle=None):
@@ -615,6 +627,10 @@ class Game:
         global cells_colideable_t, cells_colideable_b, tanks, boolets, explosions, all_sprites, power_ups, cells
         pg.init()
         # Группы спрайтов
+        pg.mixer.stop()
+        pg.mixer.music.load("sounds/1.mp3")
+        pg.mixer.music.set_volume(0.1)
+        pg.mixer.music.play(-1, fade_ms=2000)
         all_sprites = pg.sprite.Group()
         cells, cells_colideable_t, cells_colideable_b = pg.sprite.Group(), pg.sprite.Group(), pg.sprite.Group()
         power_ups = pg.sprite.Group()
@@ -639,6 +655,7 @@ class Game:
         self.v = 144
         self.clock = Clock()
         self.paused = False
+        self.settings_button = pg.Rect(screenw // 2 - 100, screenh // 2 + 50, 200, 50)
 
         self.board = self.load_random_board()
 
@@ -663,6 +680,16 @@ class Game:
         text_rect = text.get_rect(center=(screenw // 2, screenh // 2))
         self.gscreen.blit(text, text_rect)
 
+    def handle_pause_events(self):
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+                exit()
+
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_ESCAPE:
+                    self.paused = False
+
     def draw_win_counter(self):
         font = pg.font.Font(None, 36)
         win_text = f"Игрок 1 : {self.wins_player1}   Игрок 2 : {self.wins_player2}"
@@ -671,6 +698,10 @@ class Game:
 
     def draw_game_over_screen(self):
         self.gscreen.fill((0, 0, 0))
+        pg.mixer.stop()
+        pg.mixer.music.load("sounds/1.mp3")
+        pg.mixer.music.set_volume(0.1)
+        pg.mixer.music.play(-1)
         font = pg.font.Font(None, 100)
         zfont = pg.font.Font(None, 40)
         if tanks.sprites()[0].id == 1:
@@ -713,7 +744,7 @@ class Game:
         elif self.playerw2:
             self.wins_player2 += 1
             self.playerw2 = False
-        self.board = Board("rar")
+        self.board = self.load_random_board()
 
     def mainloop(self):
         running = True
@@ -734,6 +765,7 @@ class Game:
 
             if self.paused:
                 self.draw_pause_screen()
+                self.handle_pause_events()
             elif len(tanks) < 2:
                 self.draw_game_over_screen()
                 self.update_fade()

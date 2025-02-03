@@ -110,18 +110,20 @@ def start_screen(screenw, screenh):
 
 def settings_screen(screenw, screenh):
     volume = 0.1
+    fps = 60
     pg.mixer.music.set_volume(volume)
 
     screen.fill((0, 0, 0))
     for i in range(20):
         Circle(all_sprites)
+
     font = pg.font.Font(None, 100)
     text = font.render("Настройки", True, (100, 255, 100))
     text_rect = text.get_rect(center=(screenw // 2, screenh // 4 - 100))
 
     back_button = font.render("Назад", True, (100, 255, 100))
     back_x = screenw // 2 - back_button.get_width() // 2
-    back_y = screenh // 2 - back_button.get_height() // 2 + 100
+    back_y = screenh // 2 - back_button.get_height() // 2 + 200
 
     Vol_button = font.render("Звук", True, (100, 255, 100))
     vol_x = screenw // 2 - 350
@@ -132,16 +134,27 @@ def settings_screen(screenw, screenh):
     slider_width = 300
     slider_height = 20
 
+    fps_button_text = font.render(f"FPS: {fps}", True, (100, 255, 100))
+    fps_button_x = screenw // 2 - 440
+    fps_button_y = screenh // 2 + 65
 
+    fps_slider_x = screenw // 2 - 150
+    fps_slider_y = screenh // 2 + 100
+    fps_slider_width = 300
+    fps_slider_height = 20
 
     while True:
         dt = clock.tick(v)
         screen.blit(text, text_rect)
         screen.blit(back_button, (back_x, back_y))
         screen.blit(Vol_button, (vol_x, vol_y))
+        screen.blit(fps_button_text, (fps_button_x, fps_button_y))
 
         pg.draw.rect(screen, (200, 200, 200), (slider_x, slider_y, slider_width, slider_height))
         pg.draw.rect(screen, (0, 255, 0), (slider_x, slider_y, slider_width * volume, slider_height))
+
+        pg.draw.rect(screen, (200, 200, 200), (fps_slider_x, fps_slider_y, fps_slider_width, fps_slider_height))
+        pg.draw.rect(screen, (0, 255, 0), (fps_slider_x, fps_slider_y, fps_slider_width * (fps / 120), fps_slider_height))
 
         all_sprites.update(dt)
         trail_surface.fill((0, 0, 0, 0))
@@ -150,24 +163,31 @@ def settings_screen(screenw, screenh):
 
         screen.blit(trail_surface, (0, 0))
 
-
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return False
             if event.type == pg.MOUSEBUTTONDOWN:
                 x, y = pg.mouse.get_pos()
-                # Назад
+
                 if (back_x - 10 <= x <= back_x + back_button.get_width() + 10) and \
                         (back_y - 10 <= y <= back_y + back_button.get_height() + 10):
                     play_button_sound()
                     return 1
-                # громкость
+
                 if (slider_x <= x <= slider_x + slider_width) and (slider_y <= y <= slider_y + slider_height):
                     play_button_sound()
                     volume = (x - slider_x) / slider_width
                     pg.mixer.music.set_volume(volume)
+
+                if (fps_slider_x <= x <= fps_slider_x + fps_slider_width) and (fps_slider_y <= y <= fps_slider_y + fps_slider_height):
+                    play_button_sound()
+                    fps = int(((x - fps_slider_x) / fps_slider_width) * 120)
+                    fps_button_text = font.render(f"FPS: {fps}", True, (100, 255, 100))
+
         pg.display.update()
         pg.display.flip()
+
+
 
 
 class Circle(pg.sprite.Sprite):
