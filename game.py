@@ -713,11 +713,6 @@ class Game:
         text_rect = text.get_rect(center=(screenw // 2, screenh // 2))
         gscreen.blit(text, text_rect)
 
-        pg.draw.rect(gscreen, (100, 100, 100), self.settings_button)
-        settings_text = font.render("Настройки", True, (255, 255, 255))
-        settings_text_rect = settings_text.get_rect(center=self.settings_button.center)
-        gscreen.blit(settings_text, settings_text_rect)
-
     def handle_pause_events(self):
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -727,14 +722,6 @@ class Game:
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     self.paused = False
-
-            if event.type == pg.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    if self.settings_button.collidepoint(event.pos):
-                        self.open_settings()
-
-    def open_settings(self):
-        windows.settings_screen(screenw, screenh)
 
     def draw_win_counter(self):
         font = pg.font.Font(None, 36)
