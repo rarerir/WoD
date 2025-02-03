@@ -63,6 +63,7 @@ def load_image(name, colorkey=None):
 class Board:
     # Создание поля
     def __init__(self, mapn, map_data, cell_size=100):
+        global cells_colideable_b, cells_colideable_t
         self.x, self.y = map_data.pop(-1)
         self.board = map_data
         self.types = [0, 1, 2, 3]
@@ -70,6 +71,8 @@ class Board:
         self.board_width = self.x * self.cell_size
         self.board_height = self.y * self.cell_size
         self.power_couter = 0
+        cells_colideable_b.empty()
+        cells_colideable_t.empty()
 
         global screenw, screenh
         screenw = self.board_width
@@ -363,8 +366,8 @@ class Tank(pg.sprite.Sprite):
 
     def shoot(self, dt):
         shoot_channel = pg.mixer.Channel(1)
-        if self.type != "bullet":
-            shoot_channel.play(self.shoot_sound)
+        # if self.type != "bullet":
+        #     shoot_channel.play(self.shoot_sound)
         spawn_position = (
              self.rect.centerx + calculate_move_vect(-self.size[1], -self.angle + 90)[0],
             self.rect.centery + calculate_move_vect(-self.size[1], -self.angle + 90)[1]
@@ -521,60 +524,45 @@ class Boolet(pg.sprite.Sprite):
             explosion_channel.play(explosion_sound)
             if self.type == 'rocket':
                 self.tank.movement_enabled = True
-            Explosion(self, self.rect.center, 100, self.type, angle=self.angle)
-            Explosion(self, self.rect.center, 100, self.type, angle=self.angle)
+            Explosion(self, self.rect.center, type=self.type, angle=self.angle)
+            Explosion(self, self.rect.center,  type=self.type, angle=self.angle)
         else:
             self.kill()
 
-class AnimatedSprite(pg.sprite.Sprite):
-    def __init__(self, sheet, columns, rows, x, y):
-        super().__init__(all_sprites)
+class Explosion(pg.sprite.Sprite):
+    # sprite_sheet = pg.image.load(os.path.join('sprites', 'взрывы.png')).convert_alpha()
+    # image = AnimatedSprite(sprite_sheet, columns=5, rows=5, x= // 2, y=HEIGHT // 2)
+
+    def __init__(self, thing, center, columns=5, rows=5, type="normal", duration=200, angle=False):
+        super().__init__(all_sprites, explosions)
+        self.angle = angle
+        self.thing = thing
+        self.center = center
+        self.type = type
+        self.duration = duration
+        self.c1 = 0
+        if self.type == 'bomb':
+            self.c1 = -40
         self.frames = []
+        sheet = pg.image.load(os.path.join('sprites', 'взрывы.png')).convert_alpha()
         self.cut_sheet(sheet, columns, rows)
         self.cur_frame = 0
         self.image = self.frames[self.cur_frame]
-        self.rect = self.image.get_rect(topleft=(x, y))
+        self.rect = self.image.get_rect(center=center)
+        self.thing.kill()
 
     def cut_sheet(self, sheet, columns, rows):
         self.rect = pg.Rect(0, 0, sheet.get_width() // columns,
-                                sheet.get_height() // rows)
+                            sheet.get_height() // rows)
         for j in range(rows):
             for i in range(columns):
                 frame_location = (self.rect.w * i, self.rect.h * j)
                 self.frames.append(sheet.subsurface(pg.Rect(
                     frame_location, self.rect.size)))
 
-    def update(self):
+    def update(self, events, dt):
         self.cur_frame = (self.cur_frame + 1) % len(self.frames)
         self.image = self.frames[self.cur_frame]
-
-class Explosion(pg.sprite.Sprite):
-    image = pg.image.load('sprites/explosion.jpg')
-    image = pg.transform.scale(image, (10, 10))
-    # sprite_sheet = pg.image.load(os.path.join('sprites', 'взрывы.png')).convert_alpha()
-    # image = AnimatedSprite(sprite_sheet, columns=5, rows=5, x= // 2, y=HEIGHT // 2)
-
-    def __init__(self, thing, center, power, type="normal", duration=100, angle=False):
-        super().__init__(all_sprites, explosions)
-        self.power = power // duration
-        self.rect = self.image.get_rect(center=center)
-        self.angle = angle
-        self.thing = thing
-        self.center = center
-        self.dispersion = 0
-        self.type = type
-        self.duration = duration
-        self.c1 = 0
-        if self.type == 'bomb':
-            self.c1 = -40
-        self.thing.kill()
-
-    def update(self, events, dt):
-        self.dispersion += self.power
-        self.duration -= 1
-        if self.duration == 0:
-            self.kill()
-        self.image = pg.transform.scale(self.image, (self.dispersion, self.dispersion))
         self.rect = self.image.get_rect(center=self.rect.center)
         if self.type == "bomb" or self.type == "tank" or self.type == 'rocket':
             while self.c1 < 30:
@@ -586,6 +574,9 @@ class Explosion(pg.sprite.Sprite):
                 else:
                     shard = Shard(self.center[0], self.center[1], color='white')
                 all_sprites.add(shard)
+        self.duration -= 1 * dt
+        if self.duration <= 0:
+            self.kill()
 
 class Shard(pg.sprite.Sprite):
     def __init__(self, x, y, isdeadly=False, color='red', angle=None):
@@ -783,9 +774,10 @@ class Game:
                 self.fade_in = True
 
     def reset_game(self):
-        global all_sprites, tanks, boolets, explosions
+        global all_sprites, tanks, boolets, explosions, cells
         all_sprites.empty()
         tanks.empty()
+        cells.empty()
         boolets.empty()
         explosions.empty()
         pg.mixer.stop()
