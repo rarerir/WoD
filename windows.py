@@ -23,9 +23,6 @@ def loadWin(screenw, screenh):
         if i <= 255:
             surf.set_alpha(255 - i)
         else:
-
-
-
             surf.set_alpha((255 - i) * -1)
 
         screen.blit(logoSurf, logoRect)
@@ -187,10 +184,11 @@ class Circle(pg.sprite.Sprite):
 
     def update(self, dt):
         self.rect = self.rect.move(self.dx * dt, self.dy * dt)
-        if pg.sprite.spritecollideany(self, horizontal_borders):
+        if self.rect.bottom > screenh or self.rect.top < 0:
             self.dy = -self.dy
-        if pg.sprite.spritecollideany(self, vertical_borders):
+        if self.rect.left < 0 or self.rect.right > screenw:
             self.dx = -self.dx
+
         colided = pg.sprite.spritecollideany(self, boolets)
         if colided != self:
             colided.explode()
@@ -204,26 +202,11 @@ class Circle(pg.sprite.Sprite):
         Circle(all_sprites)
 
 
-class Border(pg.sprite.Sprite):
-    def __init__(self, x1, y1, x2, y2):
-        super().__init__(all_sprites)
-        if x1 == x2:
-            self.add(vertical_borders)
-            self.image = pg.Surface([1, y2 - y1])
-            self.rect = pg.Rect(x1, y1, 1, y2 - y1)
-        else:
-            self.add(horizontal_borders)
-            self.image = pg.Surface([x2 - x1, 1])
-            self.rect = pg.Rect(x1, y1, x2 - x1, 1)
-
-
 if __name__ == "__main__":
     pg.init()
     # Группы спрайтов
     button_sound = pg.mixer.Sound("sounds/кнопка2.mp3")
     all_sprites = pg.sprite.Group()
-    horizontal_borders = pg.sprite.Group()
-    vertical_borders = pg.sprite.Group()
     boolets = pg.sprite.Group()
 
     size = (1000, 1000)
@@ -231,13 +214,7 @@ if __name__ == "__main__":
     screenh = size[1]
     screen = pg.display.set_mode(size)
 
-    loadWin(1000, 1000)
-
-    # Границы
-    Border(5, 5, 995, 5)
-    Border(5, 995, 995, 995)
-    Border(5, 5, 5, 995)
-    Border(995, 5, 995, 995)
+    loadWin(screenw, screenh)
 
     # Фпс
     v = 144
@@ -254,11 +231,11 @@ if __name__ == "__main__":
     state = 1
     while state:
         if state == 1:
-            state = start_screen(1000, 1000)
+            state = start_screen(screenw, screenh)
         if state == 2:
-            state = settings_screen(1000, 1000)
+            state = settings_screen(screenw, screenh)
         if state == 3:
-            gamec = game.Game()
+            gamec = game.Game(size)
             state = gamec.mainloop()
 
     pg.quit()

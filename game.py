@@ -62,12 +62,14 @@ def load_image(name, colorkey=None):
 class Board:
     # Создание поля
     def __init__(self, mapn, cell_size=100):
-        self.load(mapn)
+        self.board = self.load(mapn)
         self.types = [0, 1, 2, 3]
         self.cell_size = cell_size
         self.board_width = self.x * self.cell_size
         self.board_height = self.y * self.cell_size
         self.power_couter = 0
+        cells_colideable_b.empty()
+        cells_colideable_t.empty()
 
         global screenw, screenh
         screenw = self.board_width
@@ -87,7 +89,6 @@ class Board:
             for x in range(len(self.board[y])):
                 if self.board[y][x] == 0:
                     print(y, x)
-        self.create_borders()
         # Спавн игроков
         self.spawn_tanks()
 
@@ -99,14 +100,7 @@ class Board:
             print(f"Карта {mapnm} не найдена")
             sys.exit()
         self.x, self.y = mapstr.pop(-1)
-        self.board = mapstr
-
-    def create_borders(self):
-        Border(0, 0, 0, self.cell_size * self.y)
-        Border(self.cell_size * self.x, 0, self.cell_size * self.x, self.cell_size * self.y)
-
-        Border(0, 0, self.cell_size * self.x, 0)
-        Border(0, self.cell_size * self.y, self.cell_size * self.x, self.cell_size * self.y)
+        return mapstr
 
     def spawn_tanks(self):
         global tanks
@@ -184,27 +178,6 @@ class Power_up(pg.sprite.Sprite):
 
     def collect(self):
         return self.type
-
-
-class Border(pg.sprite.Sprite):
-    # строго вертикальный или строго горизонтальный отрезок
-    def __init__(self, x1, y1, x2, y2):
-        super().__init__(all_sprites)
-        self.x1 = x1
-        self.y1 = y1
-        self.x2 = x2
-        self.y2 = y2
-        if x1 == x2:  # вертикальная стенка
-            self.add(vertical_borders)
-            self.image = pg.Surface([1, y2 - y1])
-            self.rect = pg.Rect(x1, y1, 1, y2 - y1)
-        else:  # горизонтальная стенка
-            self.add(horizontal_borders)
-            self.image = pg.Surface([x2 - x1, 1])
-            self.rect = pg.Rect(x1, y1, x2 - x1, 1)
-
-    def draw(self):
-        pg.draw.line(gscreen, "white", (self.x1, self.y1), (self.x2, self.y2), 30)
 
 
 class Tank(pg.sprite.Sprite):
@@ -510,15 +483,14 @@ class Boolet(pg.sprite.Sprite):
             return True
 
     def check_boundaries(self):
-        if pg.sprite.spritecollideany(self, horizontal_borders):
+        if self.rect.bottom > screenh or self.rect.top < 0:
             self.dy = -self.dy
             self.angle = -self.angle + 180
             self.hp -= 1
-        if pg.sprite.spritecollideany(self, vertical_borders):
+        if self.rect.left < 0 or self.rect.right > screenw:
             self.dx = -self.dx
             self.angle = -self.angle % 360
             self.hp -= 1
-
 
     def explode(self):
         if self.type == 'shell' and self.tank.type == 'shell':
@@ -600,6 +572,7 @@ class Shard(pg.sprite.Sprite):
 
         self.isdeadly = isdeadly
         self.hp = 100
+
     def update(self, events, dt):
         self.rect.x += self.dx * dt
         self.rect.y += self.dy * dt
@@ -619,15 +592,17 @@ class Shard(pg.sprite.Sprite):
             self.dx = 0
             self.dy = 0
             self.hp -= 1
+
     def check_boundaries(self):
-        if pg.sprite.spritecollideany(self, horizontal_borders):
+        if self.rect.bottom > screenh or self.rect.top < 0:
             self.dx = 0
             self.dy = 0
             self.hp -= 1
-        if pg.sprite.spritecollideany(self, vertical_borders):
+        if self.rect.left < 0 or self.rect.right > screenw:
             self.dx = 0
             self.dy = 0
             self.hp -= 1
+
     def check_tanks(self):
         colided = pg.sprite.spritecollideany(self, tanks)
         if colided:
@@ -636,64 +611,66 @@ class Shard(pg.sprite.Sprite):
 
 
 class Game:
-    def __init__(self):
-        global screenw, screenh, gscreen, all_sprites, vertical_borders, horizontal_borders, power_ups, cells
-        global cells_colideable_t, cells_colideable_b, tanks, boolets, explosions, clock, v
-
+    def __init__(self, size):
+        global cells_colideable_t, cells_colideable_b, tanks, boolets, explosions, all_sprites, power_ups, cells
         pg.init()
-
         # Группы спрайтов
         all_sprites = pg.sprite.Group()
-        vertical_borders, horizontal_borders = pg.sprite.Group(), pg.sprite.Group()
         cells, cells_colideable_t, cells_colideable_b = pg.sprite.Group(), pg.sprite.Group(), pg.sprite.Group()
         power_ups = pg.sprite.Group()
         tanks = pg.sprite.Group()
         boolets = pg.sprite.Group()
         explosions = pg.sprite.Group()
-
-        self.board = Board("rar")
         # Разрешение
-        self.size = (screenw, screenh)
-        gscreen = pg.display.set_mode(self.size)
+        self.size = size
+        self.gscreen = pg.display.set_mode(self.size)
+        self.gscreen.fill((0, 0, 0))
+        # Экран конца
         self.fade_in = True
         self.a = 255
         self.fade_speed = 2
         self.font = pg.font.Font(None, 74)
-
+        # Победы
         self.wins_player1 = 0
         self.wins_player2 = 0
         self.playerw1 = False
         self.playerw2 = False
-
-        Border(5, 5, screenw - 5, 5)
-        Border(5, screenh - 5, screenw - 5, screenh - 5)
-        Border(5, 5, 5, screenh - 5)
-        Border(screenw - 5, 5, screenw - 5, screenh - 5)
-
-        gscreen.fill((0, 0, 0))
-
         # Фпс
-        v = 144
-        clock = Clock()
+        self.v = 144
+        self.clock = Clock()
         self.paused = False
 
+        self.board = self.load_random_board()
+
+    def load_random_board(self):
+        map_files = [f for f in os.listdir('maps') if f.endswith('.wmap')]
+
+        if not map_files:
+            print("Нет доступных карт для загрузки.")
+            sys.exit()
+
+        random_map_file = random.choice(map_files)
+        print(f"Загрузка карты: {random_map_file}")
+
+        board = Board(random_map_file[:-5])
+        return board
 
     def draw_pause_screen(self):
-        all_sprites.draw(gscreen)
+        all_sprites.draw(self.gscreen)
 
         font = pg.font.Font(None, 74)
         text = font.render("Пауза", True, (200, 200, 200))
         text_rect = text.get_rect(center=(screenw // 2, screenh // 2))
-        gscreen.blit(text, text_rect)
+        self.gscreen.blit(text, text_rect)
 
     def draw_win_counter(self):
         font = pg.font.Font(None, 36)
         win_text = f"Игрок 1 : {self.wins_player1}   Игрок 2 : {self.wins_player2}"
         text = font.render(win_text, True, (255, 100, 100))
-        gscreen.blit(text, (10, 10))
+        self.gscreen.blit(text, (10, 10))
 
     def draw_game_over_screen(self):
-        gscreen.fill((0, 0, 0))
+        self.gscreen.fill((0, 0, 0))
         font = pg.font.Font(None, 100)
         zfont = pg.font.Font(None, 40)
         if tanks.sprites()[0].id == 1:
@@ -703,13 +680,13 @@ class Game:
             text = font.render("Игрок 2 победил", True, (0, 250, 0))
             self.playerw2 = True
         text_rect = text.get_rect(center=(screenw // 2, screenh - 650))
-        gscreen.blit(text, text_rect)
+        self.gscreen.blit(text, text_rect)
 
         restart_text = zfont.render("Нажмите R для перезапуска", True, (200, 200, 200))
         restart_rect = restart_text.get_rect(center=(screenw // 2, screenh - 300))
 
         restart_text.set_alpha(self.a)
-        gscreen.blit(restart_text, restart_rect)
+        self.gscreen.blit(restart_text, restart_rect)
 
         pg.display.flip()
 
@@ -741,8 +718,8 @@ class Game:
     def mainloop(self):
         running = True
         while running:
-            dt = clock.tick(v)
-            gscreen.fill((0, 0, 0))
+            dt = self.clock.tick(self.v)
+            self.gscreen.fill((0, 0, 0))
             # Эвенты
             events = pg.event.get()
             keys = pg.key.get_pressed()
@@ -761,15 +738,15 @@ class Game:
                 self.draw_game_over_screen()
                 self.update_fade()
             else:
-                gscreen.fill((0, 0, 0))
+                self.gscreen.fill((0, 0, 0))
                 # Обновление спрайтов
                 all_sprites.update((keys, events), dt)
-                all_sprites.draw(gscreen)
+                all_sprites.draw(self.gscreen)
                 self.board.spawn_powerups(dt)
                 self.draw_win_counter()
             pg.display.flip()
 
 
 if __name__ == "__main__":
-    game = Game()
+    game = Game((1000, 1000))
     game.mainloop()
