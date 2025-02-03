@@ -649,6 +649,10 @@ class Game:
         pg.init()
 
         # Группы спрайтов
+        pg.mixer.stop()
+        pg.mixer.music.load("sounds/1.mp3")
+        pg.mixer.music.set_volume(0.1)
+        pg.mixer.music.play(-1, fade_ms=2000)
         all_sprites = pg.sprite.Group()
         vertical_borders, horizontal_borders = pg.sprite.Group(), pg.sprite.Group()
         cells, cells_colideable_t, cells_colideable_b = pg.sprite.Group(), pg.sprite.Group(), pg.sprite.Group()
@@ -731,7 +735,10 @@ class Game:
 
     def draw_game_over_screen(self):
         gscreen.fill((0, 0, 0))
-        
+        pg.mixer.stop()
+        pg.mixer.music.load("sounds/1.mp3")
+        pg.mixer.music.set_volume(0.1)
+        pg.mixer.music.play(-1)
         font = pg.font.Font(None, 100)
         zfont = pg.font.Font(None, 40)
         if tanks.sprites()[0].id == 1:

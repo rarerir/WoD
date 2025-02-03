@@ -23,9 +23,6 @@ def loadWin(screenw, screenh):
         if i <= 255:
             surf.set_alpha(255 - i)
         else:
-
-
-
             surf.set_alpha((255 - i) * -1)
 
         screen.blit(logoSurf, logoRect)
