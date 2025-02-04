@@ -698,19 +698,13 @@ class Game:
         text = font.render(win_text, True, (255, 100, 100))
         self.gscreen.blit(text, (10, 10))
 
-    def draw_game_over_screen(self):
+    def draw_game_over_screen(self, text):
         pg.mixer.stop()
         pg.mixer.music.load("sounds/1.mp3")
         pg.mixer.music.set_volume(0.1)
         pg.mixer.music.play(-1)
-        font = pg.font.Font(None, 100)
+
         zfont = pg.font.Font(None, 40)
-        if tanks.sprites()[0].id == 1:
-            text = font.render("Игрок 1 победил", True, (0, 250, 0))
-            self.playerw1 = True
-        if tanks.sprites()[0].id == 2:
-            text = font.render("Игрок 2 победил", True, (0, 250, 0))
-            self.playerw2 = True
         text_rect = text.get_rect(center=(screenw // 2, screenh - 650))
         self.gscreen.blit(text, text_rect)
 
@@ -749,6 +743,7 @@ class Game:
 
     def mainloop(self):
         running = True
+        won = True
         while running:
             dt = self.clock.tick(self.v)
             self.gscreen.fill((0, 0, 0))
@@ -763,6 +758,7 @@ class Game:
                         self.paused = not self.paused
                     if event.key == pg.K_r and len(tanks) < 2:
                         self.reset_game()
+                        won = True
 
             if self.paused:
                 self.draw_pause_screen()
@@ -775,7 +771,16 @@ class Game:
                 self.board.spawn_powerups(dt)
                 self.draw_win_counter()
             if len(tanks) < 2:
-                self.draw_game_over_screen()
+                if won:
+                    font = pg.font.Font(None, 100)
+                    if tanks.sprites()[0].id == 1:
+                        text = font.render("Игрок 1 победил", True, (0, 250, 0))
+                        self.playerw1 = True
+                    if tanks.sprites()[0].id == 2:
+                        text = font.render("Игрок 2 победил", True, (0, 250, 0))
+                        self.playerw2 = True
+                    won = False
+                self.draw_game_over_screen(text)
                 self.update_fade()
             pg.display.flip()
 
