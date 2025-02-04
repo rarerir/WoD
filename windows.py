@@ -188,8 +188,6 @@ def settings_screen(screenw, screenh):
         pg.display.flip()
 
 
-
-
 class Circle(pg.sprite.Sprite):
     def __init__(self, *group):
         super().__init__(*group)
@@ -228,22 +226,21 @@ if __name__ == "__main__":
     button_sound = pg.mixer.Sound("sounds/кнопка2.mp3")
     all_sprites = pg.sprite.Group()
     boolets = pg.sprite.Group()
-
+    # Разрешение
     size = (1000, 1000)
     screenw = size[0]
     screenh = size[1]
     screen = pg.display.set_mode(size)
 
     loadWin(screenw, screenh)
-
     # Фпс
     v = 144
     clock = pg.time.Clock()
-
+    # Поверхность для трасеров кружков
     trail_surface = pg.Surface(size)
     trail_surface.fill((0, 0, 0))
     trail_surface.set_alpha(99)
-
+    # Музыка
     pg.mixer.music.load("sounds/фон.mp3")
     pg.mixer.music.set_volume(0.1)
     pg.mixer.music.play(-1, fade_ms=2000)

@@ -3,7 +3,6 @@ import pygame as pg
 from pygame.time import Clock
 from math import floor
 import math
-import windows
 from pygame import Vector2
 import pickle
 import random
@@ -72,9 +71,8 @@ class Board:
         cells_colideable_b.empty()
         cells_colideable_t.empty()
 
-        global screenw, screenh
-        screenw = self.board_width
-        screenh = self.board_height
+        self.screenw = self.board_width
+        self.screenh = self.board_height
 
         self.spawnable = [
             (y, x) for y in range(len(self.board))
@@ -117,9 +115,9 @@ class Board:
             (spawn1[1] * self.cell_size) + (self.cell_size / 2),
             (spawn1[0] * self.cell_size) + (self.cell_size / 2)
         )
-        tank1 = Tank(tank1_position, 0.5, 3, 2, image="танчик2.png", id=1)
+        tank1 = Tank(tank1_position, 0.5, 3, 2, image="танчик2.png", tid=1)
         tank2 = Tank(tank2_position, 0.5, 3, 2, key_forward=pg.K_w,
-                     key_backward=pg.K_s, key_left=pg.K_a, key_right=pg.K_d, key_shoot=pg.K_e, image='танчик1.png', id=2)
+                     key_backward=pg.K_s, key_left=pg.K_a, key_right=pg.K_d, key_shoot=pg.K_e, image='танчик1.png', tid=2)
         tanks.add(tank1)
         tanks.add(tank2)
 
@@ -167,7 +165,7 @@ class Cell(pg.sprite.Sprite):
 
 
 class Power_up(pg.sprite.Sprite):
-    abilities = {0:("rocket", "rocket.jpg"), 1:("bomb", "бомба.png"), 2:("bullet", "миниган.jpg"), 3:("C4", "c4.png")}
+    abilities = {0: ("rocket", "rocket.jpg"), 1: ("bomb", "бомба.png"), 2: ("bullet", "миниган.jpg"), 3: ("C4", "c4.png")}
     def __init__(self, spawn, cell_size):
         super().__init__(all_sprites, power_ups)
         self.type = random.choice((0, 1, 2, 3))
@@ -182,17 +180,17 @@ class Power_up(pg.sprite.Sprite):
 
 
 class Tank(pg.sprite.Sprite):
-    types = {'shell': (5), 'bomb': (1), 'bullet': (100), 'rocket': (1), 'C4': (3)}
+    types = {'shell': 5, 'bomb': 1, 'bullet': 100, 'rocket': 1, 'C4': 3}
     def __init__(self, spawn, speed, angspeed, hp, size=(50, 50), key_forward=pg.K_UP,
                  key_backward=pg.K_DOWN, key_left=pg.K_LEFT, key_right=pg.K_RIGHT, key_shoot=pg.K_SPACE,
-                 image='крутой так.png', id=1):
+                 image='крутой так.png', tid=1):
         super().__init__(all_sprites, tanks)
         # Игровые
         self.type = "C4"
         self.maxammo = self.types.get(self.type)
         self.currentammo = self.maxammo
         self.hp = hp
-        self.id = id
+        self.id = tid
         self.angle = 0
         self.angspeed = angspeed * 0.1
         self.speed = speed
@@ -396,6 +394,7 @@ class Boolet(pg.sprite.Sprite):
         self.collisions()
         self.rect.x += self.dx
         self.rect.y += self.dy
+        # Управление ракетой
         if self.type == 'rocket':
             angfps = int(dt)
             if events[0][self.left]:
@@ -410,6 +409,7 @@ class Boolet(pg.sprite.Sprite):
         else:
             self.angle = self.angle_hand()
             self.image = pg.transform.rotate(self.original_image, self.angle - 90)
+        # Управление бомбой
         if self.type == 'bomb':
             for event in events[1]:
                 if event.type == pg.KEYDOWN and event.dict.get("key") == self.shoot:
@@ -621,13 +621,16 @@ class Shard(pg.sprite.Sprite):
 
 class Game:
     def __init__(self, size):
-        global cells_colideable_t, cells_colideable_b, tanks, boolets, explosions, all_sprites, power_ups, cells, screenw, screenh
+        # Чё такое инкапсуляция???
+        global cells_colideable_t, cells_colideable_b, tanks, boolets, explosions, all_sprites,\
+            power_ups, cells, screenw, screenh
         pg.init()
-        # Группы спрайтов
+        # Музыка
         pg.mixer.stop()
         pg.mixer.music.load("sounds/1.mp3")
         pg.mixer.music.set_volume(0.1)
         pg.mixer.music.play(-1)
+        # Группы спрайтов
         all_sprites = pg.sprite.Group()
         cells, cells_colideable_t, cells_colideable_b = pg.sprite.Group(), pg.sprite.Group(), pg.sprite.Group()
         power_ups = pg.sprite.Group()
@@ -687,7 +690,7 @@ class Game:
 
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
-                    self.paused = False
+                    self.paused = not self.paused
 
     def draw_win_counter(self):
         font = pg.font.Font(None, 36)

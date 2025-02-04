@@ -2,7 +2,6 @@ import pygame as pg
 from math import floor
 import os
 import sys
-from time import ctime
 import pickle
 
 
@@ -28,11 +27,11 @@ def load(mapnm):
 
 class Board:
     # создание поля
-    def __init__(self, width, height, canvas, cell_size=80, board=None):
+    def __init__(self, screenw, screenh, width, height, canvas, cell_size=80, board=None):
         self.images = [
             load_image("земля.jpg"),
-            load_image("вода.jpg"),
             load_image("кирпичи.png"),
+            load_image("вода.jpg"),
             load_image("коробка.jpg")]
         self.scaled_images = [pg.transform.scale(img, (cell_size, cell_size)) for img in self.images]
         self.width = width
@@ -90,36 +89,44 @@ class Board:
             print("Карта сохранена")
 
 
-if __name__ == "__main__":
-    pg.init()
-    info = pg.display.Info()
-    screenw = info.current_w
-    screenh = info.current_h
-    running = True
-    choice = input("1.Загрузить карту\n2.Делать с нуля")
-    size = (screenw, screenh)
-    screen = pg.display.set_mode(size)
-    screen.fill((0, 0, 0))
-    if choice == '2':
-        cells = tuple(map(int, input("Введите кол-во клеток по x и y соответственно (через пробел): \n").split()))
-        x = cells[0]
-        y = cells[1]
-        board = Board(x, y, screen)
-        board.render()
-    elif choice == '1':
-        map = load(input("Введите название карты"))
-        x, y = map.pop(-1)
-        Board(x, y, screen, board=map)
+pg.init()
+# Разрешение
+info = pg.display.Info()
+size = (1000, 1000)
+sizew, sizeh = size
+screen = pg.display.set_mode(size)
+screen.fill((0, 0, 0))
 
-    print("Для того что-бы сохранить нажмите enter")
-    while running:
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                running = False
-            if event.type == pg.KEYDOWN and event.dict.get("key") == 13:
-                board.save()
-            if event.type == pg.MOUSEBUTTONDOWN:
-                board.get_click(event.pos)
-                screen.fill((0, 0, 0))
-                board.render()
-        pg.display.flip()
+running = True
+choice = input("1.Загрузить карту\n2.Делать с нуля\n")
+
+if choice == '2':
+    cells = tuple(map(int, input("Введите кол-во клеток по x и y соответственно (через пробел): \n").split()))
+    x = cells[0]
+    y = cells[1]
+    if x > 10 or y > 10:
+        print('Максимальное кол-во клеток: 10')
+        sys.exit()
+    board = Board(sizew, sizeh, x, y, screen)
+    board.render()
+elif choice == '1':
+    mape = load(input("Введите название карты (без wmap)\n"))
+    x, y = mape.pop(-1)
+    board = Board(sizew, sizeh, x, y, screen, board=mape)
+else:
+    print('Дурак что-ли?')
+    sys.exit()
+
+print("Для того что-бы сохранить нажмите enter")
+while running:
+    for event in pg.event.get():
+        if event.type == pg.QUIT:
+            running = False
+        if event.type == pg.KEYDOWN and event.dict.get("key") == 13:
+            board.save()
+            sys.exit()
+        if event.type == pg.MOUSEBUTTONDOWN:
+            board.get_click(event.pos)
+            screen.fill((0, 0, 0))
+        board.render()
+    pg.display.flip()
