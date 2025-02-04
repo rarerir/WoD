@@ -358,7 +358,7 @@ class Tank(pg.sprite.Sprite):
         self.angle = self.angle % 360
 
     def explode(self):
-        Explosion(self, self.rect.center, 100)
+        Explosion(self, self.rect.center, type='tank')
 
 
 class Boolet(pg.sprite.Sprite):
@@ -699,7 +699,6 @@ class Game:
         self.gscreen.blit(text, (10, 10))
 
     def draw_game_over_screen(self):
-        self.gscreen.fill((0, 0, 0))
         pg.mixer.stop()
         pg.mixer.music.load("sounds/1.mp3")
         pg.mixer.music.set_volume(0.1)
@@ -768,9 +767,6 @@ class Game:
             if self.paused:
                 self.draw_pause_screen()
                 self.handle_pause_events()
-            elif len(tanks) < 2:
-                self.draw_game_over_screen()
-                self.update_fade()
             else:
                 self.gscreen.fill((0, 0, 0))
                 # Обновление спрайтов
@@ -778,6 +774,9 @@ class Game:
                 all_sprites.draw(self.gscreen)
                 self.board.spawn_powerups(dt)
                 self.draw_win_counter()
+            if len(tanks) < 2:
+                self.draw_game_over_screen()
+                self.update_fade()
             pg.display.flip()
 
 
